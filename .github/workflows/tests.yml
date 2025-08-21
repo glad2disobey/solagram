@@ -12,21 +12,21 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '22'
-        cache: 'yarn'
-
-    - name: Install Yarn dependencies
-      run: yarn install --frozen-lockfile --prefer-offline
-
     - name: Install Rust
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         override: true
         components: rustfmt, clippy
+
+    - name: Setup Anchor
+      uses: metadaoproject/setup-anchor@v3.3
+
+    - name: Setup Yarn
+      run: npm i -g yarn
+
+    - name: Install Yarn dependencies
+      run: yarn install --frozen-lockfile --prefer-offline
 
     - name: Cache dependencies
       uses: actions/cache@v3
@@ -40,17 +40,6 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock', '**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-
-
-    - name: Install Solana
-      run: |
-        sh -c "$(curl -sSfL https://release.anza.xyz/v2.2.20/install)"
-        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-        solana --version
-
-    - name: Install Anchor
-      run: |
-        cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked
-        anchor --version
 
     - name: Setup Solana test environment
       run: |
