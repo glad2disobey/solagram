@@ -24,6 +24,14 @@ jobs:
       with:
         node-version: '22.5.1'
 
+    - name: Check versions
+      run: |
+        rustc -V
+        anchor -V
+        solana -V
+        node -v
+      shell: bash
+
     - name: Setup Yarn
       run: npm i -g yarn
 
