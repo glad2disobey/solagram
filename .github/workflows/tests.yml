@@ -32,7 +32,6 @@ jobs:
         anchor -V
         solana -V
         node -v
-      shell: bash
 
     - name: Setup Yarn
       run: npm i -g yarn
@@ -57,6 +56,9 @@ jobs:
       run: |
         solana config set --url localhost
         solana-keygen new --no-passphrase --force
+
+    - name: Anchor build
+      run: anchor build
 
     - name: Generate codama clients
       run: anchor run generate-clients
