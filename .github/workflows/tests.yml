@@ -21,6 +21,8 @@ jobs:
 
     - name: Setup Anchor
       uses: metadaoproject/setup-anchor@v3.3
+      with:
+        node-version: '22.5.1'
 
     - name: Setup Yarn
       run: npm i -g yarn
