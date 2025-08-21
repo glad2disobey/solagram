@@ -1,0 +1,64 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '22'
+        cache: 'yarn'
+
+    - name: Install Yarn dependencies
+      run: yarn install --frozen-lockfile --prefer-offline
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+          node_modules
+          ~/.cache/yarn
+        key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock', '**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-
+
+    - name: Install Solana
+      run: |
+        sh -c "$(curl -sSfL https://release.solana.com/v2.2.21/install)"
+        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+        solana --version
+
+    - name: Install Anchor
+      run: |
+        cargo install --git https://github.com/coral-xyz/anchor anchor-cli --locked
+        anchor --version
+
+    - name: Setup Solana test environment
+      run: |
+        solana config set --url localhost
+        solana-keygen new --no-passphrase --force
+
+    - name: Generate codama clients
+      run: anchor run generate-clients
+
+    - name: Run tests
+      run: anchor test
