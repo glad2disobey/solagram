@@ -23,7 +23,7 @@ jobs:
       uses: metadaoproject/setup-anchor@v3.3
       with:
         anchor-version: '0.30.1'
-        solana-cli-version: '2.3.8'
+        solana-cli-version: '2.2.20'
         node-version: '22.5.1'
 
     - name: Check versions
