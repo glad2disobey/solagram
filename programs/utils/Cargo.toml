@@ -1,12 +1,12 @@
 [package]
-name = "solagram"
+name = "utils"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "solagram"
+name = "utils"
 
 [features]
 default = []
@@ -15,11 +15,8 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
-custom-heap = []
-custom-panic = []
 
 
 [dependencies]
 anchor-lang = "0.31.1"
-plugin_api = { path = "../plugin_api", features = [ "no-entrypoint" ] }
-utils = { path = "../utils", features = [ "no-entrypoint" ] }
+

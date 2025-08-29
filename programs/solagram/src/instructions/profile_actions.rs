@@ -1,25 +1,30 @@
 use anchor_lang::prelude::*;
 
-use crate::{ state::{ Profile, GlobalState } };
+use crate::{ states, constants, errors };
 
-use crate::{ errors, constants };
+use utils;
 
 #[derive(Accounts)]
 pub struct CreateProfile<'info> {
   #[account(
       init,
+
       payer = signer,
-      space = 8 + Profile::INIT_SPACE,
-      seeds = [b"profile", signer.key().as_ref()],
+
+      space = utils::constants::ANCHOR_DISCRIMINATOR_SIZE + states::ProfileState::INIT_SPACE,
+      seeds = [
+        String::from(constants::PROFILE_STATE_SEED_KEY).as_bytes(),
+        signer.key().as_ref(),
+      ],
       bump,
   )]
-  pub profile: Account<'info, Profile>,
+  pub profile_state: Account<'info, states::ProfileState>,
   
   #[account(
-      seeds = [b"global_state"],
+      seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
       bump,
   )]
-  pub global_state: Account<'info, GlobalState>,
+  pub global_state: Account<'info, states::GlobalState>,
 
   #[account(mut)]
   pub signer: Signer<'info>,
@@ -30,14 +35,14 @@ pub fn create_profile(
   ctx: Context<CreateProfile>,
   name: String,
 ) -> Result<()> {
-  require!(name.len() <= constants::MAX_PROFILE_NAME_LENGTH, errors::ProgramError::ProfileNameTooLong);
+  require!(name.len() <= constants::MAX_PROFILE_NAME_LENGTH, errors::SolagramError::ProfileNameTooLong);
   
-  let profile = &mut ctx.accounts.profile;
-  profile.authority = ctx.accounts.signer.key();
-  profile.name = name;
+  let profile_state = &mut ctx.accounts.profile_state;
+  profile_state.authority = ctx.accounts.signer.key();
+  profile_state.name = name;
 
-  profile.created_at = Clock::get()?.unix_timestamp;
-  profile.updated_at = Clock::get()?.unix_timestamp;
+  profile_state.created_at = Clock::get()?.unix_timestamp;
+  profile_state.updated_at = Clock::get()?.unix_timestamp;
 
   let global_state = &mut ctx.accounts.global_state;
   global_state.profile_counter = global_state.profile_counter.checked_add(1).unwrap();

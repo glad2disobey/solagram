@@ -1,7 +1,7 @@
 #![allow(unexpected_cfgs)]
 
 pub mod instructions;
-pub mod state;
+pub mod states;
 
 pub mod constants;
 pub mod errors;
@@ -15,11 +15,32 @@ declare_id!("7W7K9yAshEJBgPRNPW1fDiXuVDzjKBPcBWCC6UGrWxKC");
 pub mod solagram {
   use super::*;
 
-  pub fn initialize_global_state(
+  pub fn initialize(
     ctx: Context<InitializeGlobalState>,
-    params: state::GlobalStateParams,
+    params: states::InitializeGlobalStateParams,
   ) -> Result<()> {
     instructions::initialize::initialize_global_state(ctx, params)
+  }
+
+  pub fn install_comunication_plugin(
+    ctx: Context<InstallCommunicationPlugin>,
+    params: states::InstallPluginParams,
+  ) -> Result<()> {
+    instructions::install_communication_plugin(ctx, params)
+  }
+
+  pub fn install_token_plugin(
+    ctx: Context<InstallTokenPlugin>,
+    params: states::InstallPluginParams,
+  ) -> Result<()> {
+    instructions::install_token_plugin(ctx, params)
+  }
+
+  pub fn install_application_plugin(
+    ctx: Context<InstallApplicationPlugin>,
+    params: states::InstallPluginParams,
+  ) -> Result<()> {
+    instructions::install_application_plugin(ctx, params)
   }
 
   pub fn create_profile(

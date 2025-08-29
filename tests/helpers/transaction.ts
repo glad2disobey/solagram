@@ -6,6 +6,9 @@ const rpcClient = connection.getRpcClient();
 
 const sendAndConfirmTransaction = kit.sendAndConfirmTransactionFactory(rpcClient);
 
+type TransactionMessage = kit.BaseTransactionMessage & kit.TransactionMessageWithFeePayer & kit.TransactionMessageWithSigners;
+type SignedTransactionMessage = kit.SendableTransaction & kit.Transaction & kit.TransactionMessageWithBlockhashLifetime;
+
 export async function createTransactionBasement(
   feePayerSigner: kit.KeyPairSigner,
 ) {
@@ -19,13 +22,26 @@ export async function createTransactionBasement(
 }
 
 export async function signAndSendTransaction(
-  transactionMessage: kit.CompilableTransactionMessage & kit.TransactionMessageWithBlockhashLifetime,
+  transactionMessage: TransactionMessage,
   commitment: kit.Commitment = "confirmed",
 ): Promise<kit.Signature> {
   const signedTransaction = await kit.signTransactionMessageWithSigners(transactionMessage);
   const signature = kit.getSignatureFromTransaction(signedTransaction);
 
-  await sendAndConfirmTransaction(signedTransaction, { commitment });
+  await kit.assertIsSendableTransaction(signedTransaction);
+  await sendAndConfirmTransaction(signedTransaction as SignedTransactionMessage, { commitment });
 
   return signature;
 }
+
+export async function executeTransactions(
+  wallet: kit.KeyPairSigner,
+  instructions: kit.Instruction[],
+  commitment: kit.Commitment = "confirmed",
+) {
+  await kit.pipe(
+    await createTransactionBasement(wallet),
+    (tx) => kit.appendTransactionMessageInstructions(instructions, tx),
+    (tx) => signAndSendTransaction(tx, commitment),
+  );
+};

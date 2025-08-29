@@ -13,11 +13,6 @@ export async function subscribeToProgramNotifications(
     .programNotifications(programAddress, { commitment })
     .subscribe({ abortSignal });
 
-  // for await (const programNotification of programNotifications) {
-  //   console.log(`Program(${ programAddress }) notification: `);
-  //   console.dir(programNotification, { depth: 3 });
-  // }
-
   return programNotifications;
 }
 
@@ -29,11 +24,6 @@ export async function subscribeToAccountNotifications(
   const accountNotifications = await rpcClient.rpcSubscriptions
     .accountNotifications(accountAddress, { commitment })
     .subscribe({ abortSignal });
-
-  // for await (const accountNotification of accountNotifications) {
-  //   console.log(`Account(${ accountAddress }) notification: `);
-  //   console.dir(accountNotification, { depth: 3 });
-  // }
 
   return accountNotifications;
 }

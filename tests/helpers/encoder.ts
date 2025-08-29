@@ -19,13 +19,11 @@ export function encodeSeeds(seeds: Array<SeedType>): Array<Uint8Array | kit.Read
 
         return numberEncoder.encode(seed);
 
+      case kit.isAddress(seed as kit.Address):
+        return addressEncoder.encode(seed as kit.Address);
+
       case typeof seed === "string":
-        try {
-          return addressEncoder.encode(seed as kit.Address);
-        }
-        catch {
-          return new TextEncoder().encode(seed);
-        }
+        return new TextEncoder().encode(seed);
 
       default:
         throw new error.SeedTypeIsUnsupportedError();

@@ -11,3 +11,7 @@ export class IsNotIntegerError extends TypeError {
 export class SeedTypeIsUnsupportedError extends TypeError {
   message: "Given seed type is not supported yet";
 }
+
+export class PluginTypeIsNotSupported extends TypeError {
+  message: "Given plugin type is not supported";
+}

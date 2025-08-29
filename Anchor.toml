@@ -6,7 +6,9 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
+plugin_interface = "9x1vYwaiSTW1g4GNPY7zufmwqS9fdfYFu5SyA6KgqLmB"
 solagram = "7W7K9yAshEJBgPRNPW1fDiXuVDzjKBPcBWCC6UGrWxKC"
+utils = "2Q3DqV7f2FbLZrj8E4ewQVLcpVVfjvHxmcdioAtFs6dQ"
 
 [registry]
 url = "https://api.apr.dev"
@@ -16,5 +18,5 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/index.ts"
 generate-clients = "yarn ts-node ./scripts/generate-clients.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/index.ts"
