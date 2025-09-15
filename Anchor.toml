@@ -6,9 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-plugin_interface = "9x1vYwaiSTW1g4GNPY7zufmwqS9fdfYFu5SyA6KgqLmB"
+messenger = "3m3V6iGoTzRAcw52mtpmbUEzqzqpm9XSvYrczsWjiMTx"
 solagram = "7W7K9yAshEJBgPRNPW1fDiXuVDzjKBPcBWCC6UGrWxKC"
-utils = "2Q3DqV7f2FbLZrj8E4ewQVLcpVVfjvHxmcdioAtFs6dQ"
 
 [registry]
 url = "https://api.apr.dev"

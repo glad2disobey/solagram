@@ -27,3 +27,10 @@ export async function airdropToWallet(
     commitment,
   });
 }
+
+let adminWallet: kit.KeyPairSigner;
+export async function getAdminWallet(): Promise<kit.KeyPairSigner> {
+  if (adminWallet) return adminWallet;
+
+  return adminWallet = await makeWallet();
+}

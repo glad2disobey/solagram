@@ -21,5 +21,3 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = "0.31.1"
-plugin_api = { path = "../plugin_api", features = [ "no-entrypoint" ] }
-utils = { path = "../utils", features = [ "no-entrypoint" ] }

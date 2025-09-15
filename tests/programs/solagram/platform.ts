@@ -3,11 +3,12 @@ import assert from "node:assert";
 
 import * as kit from "@solana/kit";
 
-import * as programClient from "../../../clients/js/src/generated";
+import * as solagramProgramClient from "../../../clients/js/src/generated/solagram";
 
-import * as instructions from "./instructions";
 import * as helpers from "../../helpers";
 import * as mocks from "../../mocks";
+
+const solagram = helpers.programs.solagram;
 
 describe("profile", async () => {
   const rpcClient = helpers.connection.getRpcClient();
@@ -24,14 +25,10 @@ describe("profile", async () => {
   }
 
   let adminWallet: kit.KeyPairSigner;
-
   let aliceWallet, barryWallet, cindyWallet: kit.KeyPairSigner;
-  let aliceProfileAddress, barryProfileAddress, cindyProfileAddress: kit.Address;
-
-  let globalStatePDA, communicationStatePDA: kit.Address;
 
   before(async () => {
-    adminWallet = await helpers.wallet.makeWallet();
+    adminWallet = await helpers.wallet.getAdminWallet();
 
     aliceWallet = await helpers.wallet.makeWallet(3_000_000_000n);
     barryWallet = await helpers.wallet.makeWallet();
@@ -41,67 +38,73 @@ describe("profile", async () => {
   });
 
   it("Initialize program", async () => {
-    [globalStatePDA] = await instructions.initialize.initializeProgram(adminWallet);
+    await solagram.instructions.initialize.initializeProgram(adminWallet);
   })
 
   it("Create profiles", async () => {
-    aliceProfileAddress = await instructions.profile.createProfile(globalStatePDA, aliceWallet, "Alice");
-    barryProfileAddress = await instructions.profile.createProfile(globalStatePDA, barryWallet, "Barry");
+    await solagram.instructions.profile.createProfile(aliceWallet, "Alice");
+    await solagram.instructions.profile.createProfile(barryWallet, "Barry");
     
-    await assert.rejects(instructions.profile.createProfile(globalStatePDA, cindyWallet, "Cindy"));
+    await assert.rejects(solagram.instructions.profile.createProfile(cindyWallet, "Cindy"));
     await checkFunds();
 
     await helpers.wallet.airdropToWallet(cindyWallet, 1_000_000_000n);
 
     await assert.rejects(
-      instructions.profile.createProfile(
-        globalStatePDA,
+      solagram.instructions.profile.createProfile(
         cindyWallet,
         "VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongName",
       )
     );
 
-    cindyProfileAddress = await instructions.profile.createProfile(globalStatePDA, cindyWallet, "Cindy");
+    await solagram.instructions.profile.createProfile(cindyWallet, "Cindy");
     await checkFunds();
 
-    await assert.rejects(instructions.profile.createProfile(globalStatePDA, barryWallet, "Barry"));
+    await assert.rejects(solagram.instructions.profile.createProfile(barryWallet, "Barry"));
+
+    const [aliceProfile, barryProfile, cindyProfile] = await solagramProgramClient.fetchAllProfileState(
+      rpcClient.rpc,
+
+      await Promise.all([
+        solagram.pda.getProfileStatePDA(aliceWallet.address),
+        solagram.pda.getProfileStatePDA(barryWallet.address),
+        solagram.pda.getProfileStatePDA(cindyWallet.address),
+      ])
+    );
+
+    assert.equal(aliceProfile.data.name, "Alice");
+    assert.equal(barryProfile.data.name, "Barry");
+    assert.equal(cindyProfile.data.name, "Cindy");
   });
 
   it("Install plugins", async () => {
-    const communicationPlugin = await mocks.plugin.createPlugin();
+    const applicationPlugin = await mocks.plugin.createPlugin();
 
-    communicationStatePDA = await instructions.admin.installPlugin(
+    await assert.rejects(solagram.instructions.admin.installPlugin(
       adminWallet,
-      globalStatePDA,
-      communicationPlugin,
-      "communication",
+      applicationPlugin,
+      "abc" as "application",
+    ));
+
+    await solagram.instructions.admin.installPlugin(
+      adminWallet,
+      applicationPlugin,
+      "application",
     );
 
-    await assert.rejects(instructions.admin.installPlugin(adminWallet, globalStatePDA, communicationPlugin, "communication"));
+    await assert.rejects(solagram.instructions.admin.installPlugin(adminWallet, applicationPlugin, "application"));
 
     const plugins = await Promise.all(
-      Array.from({ length: helpers.libs.plugins.constants.MAX_COMMUNICATION_PLUGINS_COUNT - 1 })
+      Array.from({ length: solagram.plugins.constants.MAX_COMMUNICATION_PLUGINS_COUNT - 1 })
         .map(() => mocks.plugin.createPlugin()
       )
     );
 
     await Promise.all(plugins.map(
-      plugin => instructions.admin.installPlugin(adminWallet, globalStatePDA, plugin, "communication")
+      plugin => solagram.instructions.admin.installPlugin(adminWallet, plugin, "application")
     ));
 
     const outOfBoundsPlugin = await mocks.plugin.createPlugin();
-    await assert.rejects(instructions.admin.installPlugin(adminWallet, globalStatePDA, outOfBoundsPlugin, "communication"));
-  });
-
-  it("Check profiles", async () => {
-    const [aliceProfile, barryProfile, cindyProfile] = await programClient.fetchAllProfileState(rpcClient.rpc, [
-      aliceProfileAddress,
-      barryProfileAddress,
-      cindyProfileAddress,
-    ]);
-
-    assert.equal(aliceProfile.data.name, "Alice");
-    assert.equal(barryProfile.data.name, "Barry");
-    assert.equal(cindyProfile.data.name, "Cindy");
+    await assert.rejects(solagram.instructions.admin.installPlugin(adminWallet, outOfBoundsPlugin, "application"));
   });
 });

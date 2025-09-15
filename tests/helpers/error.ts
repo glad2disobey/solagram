@@ -1,5 +1,3 @@
-import * as kit from "@solana/kit";
-
 export class IntOutOfRangeError extends TypeError {
   message: "Integer is out of range";
 }

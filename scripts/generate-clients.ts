@@ -1,12 +1,34 @@
-import { createFromRoot } from 'codama';
-import { rootNodeFromAnchor, AnchorIdl } from '@codama/nodes-from-anchor';
+import path from "node:path";
+import fs from "node:fs/promises";
+
+import { createFromRoot } from "codama";
+import { rootNodeFromAnchor, AnchorIdl } from "@codama/nodes-from-anchor";
 import { renderVisitor as renderJavaScriptVisitor } from "@codama/renderers-js";
-import anchorIdl from '../target/idl/solagram.json';
-import path from 'path';
 
-const codama = createFromRoot(rootNodeFromAnchor(anchorIdl as AnchorIdl));
+import solagramIdl from '../target/idl/solagram.json';
+import messengerIdl from '../target/idl/messenger.json';
 
-const jsClient = path.join(__dirname, "..", "clients", "js");
-codama.accept(
-  renderJavaScriptVisitor(path.join(jsClient, "src", "generated"))
-);
+const anchorIdlBundleList = [
+  { program: "solagram", idl: solagramIdl },
+  { program: "messenger", idl: messengerIdl },
+];
+
+const jsClientPath = path.join(__dirname, "..", "clients", "js", "src", "generated");
+const jsClientIndexPath = path.join(jsClientPath, "index.ts");
+
+(async () => {
+  for await (const bundle of anchorIdlBundleList) {
+    const codama = createFromRoot(rootNodeFromAnchor(bundle.idl as AnchorIdl));
+
+    const javaScriptVisitor = renderJavaScriptVisitor(path.join(jsClientPath, bundle.program));
+    await codama.accept(javaScriptVisitor);
+  }
+
+  await fs.writeFile(jsClientIndexPath, "", { flag: "w" });
+
+  for await (const bundle of anchorIdlBundleList)
+    await fs.appendFile(
+      jsClientIndexPath,
+      `export * as ${ bundle.program } from "./${ bundle.program }";\n`,
+    );
+})();

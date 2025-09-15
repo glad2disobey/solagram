@@ -34,7 +34,7 @@ export async function signAndSendTransaction(
   return signature;
 }
 
-export async function executeTransactions(
+export async function executeTransaction(
   wallet: kit.KeyPairSigner,
   instructions: kit.Instruction[],
   commitment: kit.Commitment = "confirmed",
