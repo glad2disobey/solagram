@@ -2,13 +2,13 @@ import * as kit from "@solana/kit";
 
 import * as messengerProgramClient from "../../../../clients/js/src/generated/messenger";
 
-import * as factories from "../../factories";
+import * as factory from "../../factory";
 
 import * as constants from "./constants";
 
 import * as solagram from "../solagram";
 
-const getPDA = factories.getPDAFactory(messengerProgramClient.MESSENGER_PROGRAM_ADDRESS);
+const getPDA = factory.getPDAFactory(messengerProgramClient.MESSENGER_PROGRAM_ADDRESS);
 
 let globalStatePDA: kit.Address;
 export const getGlobalStatePDA = async (): Promise<kit.Address> => globalStatePDA

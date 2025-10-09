@@ -35,8 +35,9 @@ pub mod solagram {
   pub fn install_token_plugin(
     ctx: Context<InstallTokenPlugin>,
     params: platform::states::InstallPluginParams,
+    token_params: plugin_api::states::SetPlatformTokenParams,
   ) -> Result<()> {
-    admin_actions::install_token_plugin(ctx, params)
+    admin_actions::install_token_plugin(ctx, params, token_params)
   }
 
   pub fn install_application_plugin(
@@ -51,6 +52,13 @@ pub mod solagram {
     name: String,
   ) -> Result<()> {
     profile_actions::create_profile(ctx, name)
+  }
+
+  pub fn create_token_account(
+    ctx: Context<CreateTokenAccount>,
+    token_plugin: Pubkey,
+  ) -> Result<()> {
+    profile_actions::create_token_account(ctx, token_plugin)
   }
 
   pub fn register_conversation(

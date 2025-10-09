@@ -2,12 +2,12 @@ import * as kit from "@solana/kit";
 
 import * as solagramProgramClient from "../../../../clients/js/src/generated/solagram";
 
-import * as factories from "../../factories";
+import * as factory from "../../factory";
 
 import * as constants from "./constants";
 import * as plugins from "./plugins";
 
-const getPDA = factories.getPDAFactory(solagramProgramClient.SOLAGRAM_PROGRAM_ADDRESS);
+const getPDA = factory.getPDAFactory(solagramProgramClient.SOLAGRAM_PROGRAM_ADDRESS);
 
 let globalStatePDA: kit.Address;
 export const getGlobalStatePDA = async (): Promise<kit.Address> => globalStatePDA
@@ -36,3 +36,14 @@ export const getProfileCommunicationListStatePDA = async (profileAddress: kit.Ad
 
 export const getPlatformConversationStatePDA = async (conversationStatePDA: kit.Address): Promise<kit.Address> =>
   getPDA([plugins.constants.PLATFORM_CONVERSATION_STATE_SEED_KEY, conversationStatePDA]);
+
+export const getPlatformTokenStatePDA = async (pluginAddress: kit.Address): Promise<kit.Address> =>
+  getPDA([plugins.constants.PLATFORM_TOKEN_STATE_SEED_KEY, pluginAddress]);
+
+export const getPlatformTokenTreasuryStatePDA = async (pluginAddress: kit.Address): Promise<kit.Address> =>
+  getPDA([plugins.constants.PLATFORM_TOKEN_TREASURY_STATE_SEED_KEY, pluginAddress]);
+
+export const getTokenProfileTreasuryStatePDA =
+  async (profileAddress: kit.Address, tokenAddress: kit.Address): Promise<kit.Address> =>
+    getPDA([plugins.constants.TOKEN_PROFILE_TREASURY_STATE_SEED_KEY, tokenAddress, profileAddress]);
+

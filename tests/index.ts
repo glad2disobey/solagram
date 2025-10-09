@@ -1,5 +1,5 @@
 import { describe } from "node:test";
 
-describe("Apps", async () => {
+describe("Programs", async () => {
   await import("./programs");
 });

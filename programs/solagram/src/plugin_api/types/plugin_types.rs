@@ -10,11 +10,11 @@ pub enum PluginTypes {
 
 impl std::fmt::Display for PluginTypes {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-      let s = match self {
-          PluginTypes::Communication => "communication",
-          PluginTypes::Token => "token",
-          PluginTypes::Application => "application",
-      };
-      write!(f, "{s}")
+    let s = match self {
+      PluginTypes::Communication => "communication",
+      PluginTypes::Token => "token",
+      PluginTypes::Application => "application",
+    };
+    write!(f, "{s}")
   }
 }

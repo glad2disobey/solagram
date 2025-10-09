@@ -21,5 +21,5 @@ export async function initializeProgram(wallet: kit.KeyPairSigner) {
     applicationPluginListState,
   });
 
-  await transaction.executeTransaction(wallet, [initializeGlobalStateInstruction]);
+  await transaction.executeTransaction([wallet], [initializeGlobalStateInstruction]);
 }

@@ -13,11 +13,11 @@ default = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
-no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-spl/idl-build", "anchor-lang/idl-build"]
 custom-heap = []
 custom-panic = []
 
 
 [dependencies]
-anchor-lang = "0.31.1"
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = "0.31.1"

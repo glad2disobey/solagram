@@ -8,6 +8,7 @@ skip-lint = false
 [programs.localnet]
 messenger = "3m3V6iGoTzRAcw52mtpmbUEzqzqpm9XSvYrczsWjiMTx"
 solagram = "7W7K9yAshEJBgPRNPW1fDiXuVDzjKBPcBWCC6UGrWxKC"
+token = "4kmeDwmjEiVaGHSD3CFgYukd3nSt4eNNBwJ2eEdb2sqK"
 
 [registry]
 url = "https://api.apr.dev"

@@ -15,5 +15,5 @@ export async function initializePlugin(wallet: kit.KeyPairSigner, platformPDA: k
     platform: platformPDA,
   });
 
-  await transaction.executeTransaction(wallet, [initializeGlobalStateInstruction]);
+  await transaction.executeTransaction([wallet], [initializeGlobalStateInstruction]);
 }

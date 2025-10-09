@@ -8,12 +8,18 @@ import * as plugins from "../plugins";
 import * as transaction from "../../../transaction";
 import * as error from "../../../error";
 
+interface AdditionalParameters {
+  airdropAmount?: number,
+  mint?: kit.Address,
+}
+
 export async function installPlugin(
   wallet: kit.KeyPairSigner,
 
   plugin: kit.Address,
-
   pluginType: plugins.types.PluginType,
+
+  additionalParameters: AdditionalParameters = {},
 ) {
   const globalState = await pda.getGlobalStatePDA();
   const pluginState = await pda.getPluginStatePDA(pluginType);
@@ -28,7 +34,7 @@ export async function installPlugin(
     }
   };
 
-  const installPluginInstruction = (() => {
+  const installPluginInstruction = await (async () => {
     switch (pluginType) {
       case "communication":
         return solagramProgramClient.getInstallComunicationPluginInstruction({
@@ -37,9 +43,23 @@ export async function installPlugin(
         });
 
       case "token":
+        const platformTokenStatePDA = await pda.getPlatformTokenStatePDA(plugin);
+        const platformTokenTreasuryStatePDA = await pda.getPlatformTokenTreasuryStatePDA(plugin);
+
+        if (!additionalParameters.airdropAmount)
+          additionalParameters.airdropAmount = plugins.constants.DEFAULT_TOKEN_AIRDROP_AMOUNT;
+
+        if (!additionalParameters.mint) throw new Error("Mint address should be provided");
+
         return solagramProgramClient.getInstallTokenPluginInstruction({
           ...installPluginInstructionOptions,
           tokenPluginListState: pluginState,
+
+          airdropAmount: additionalParameters.airdropAmount,
+          mint: additionalParameters.mint,
+          
+          platformTokenState: platformTokenStatePDA,
+          platformTokenTreasuryState: platformTokenTreasuryStatePDA,
         });
 
       case "application":
@@ -52,5 +72,5 @@ export async function installPlugin(
     }
   })();
 
-  await transaction.executeTransaction(wallet, [installPluginInstruction]);
+  await transaction.executeTransaction([wallet], [installPluginInstruction]);
 }

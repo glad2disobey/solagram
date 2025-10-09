@@ -5,12 +5,14 @@ import { createFromRoot } from "codama";
 import { rootNodeFromAnchor, AnchorIdl } from "@codama/nodes-from-anchor";
 import { renderVisitor as renderJavaScriptVisitor } from "@codama/renderers-js";
 
-import solagramIdl from '../target/idl/solagram.json';
-import messengerIdl from '../target/idl/messenger.json';
+import solagramIdl from "../target/idl/solagram.json";
+import messengerIdl from "../target/idl/messenger.json";
+import tokenIdl from "../target/idl/token.json";
 
 const anchorIdlBundleList = [
   { program: "solagram", idl: solagramIdl },
   { program: "messenger", idl: messengerIdl },
+  { program: "token", idl: tokenIdl },
 ];
 
 const jsClientPath = path.join(__dirname, "..", "clients", "js", "src", "generated");

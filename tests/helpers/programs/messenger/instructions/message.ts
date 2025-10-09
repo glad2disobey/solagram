@@ -48,5 +48,5 @@ export async function addMessage(
     participant,
   });
 
-  await transaction.executeTransaction(participant, [addMessageInstruction]);
+  await transaction.executeTransaction([participant], [addMessageInstruction]);
 }

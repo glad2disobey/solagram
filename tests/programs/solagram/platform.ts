@@ -24,8 +24,11 @@ describe("profile", async () => {
     console.log("Cindy's balance: ", cindyBalance);
   }
 
-  let adminWallet: kit.KeyPairSigner;
-  let aliceWallet, barryWallet, cindyWallet: kit.KeyPairSigner;
+  let adminWallet: kit.KeyPairSigner,
+
+    aliceWallet: kit.KeyPairSigner,
+    barryWallet: kit.KeyPairSigner,
+    cindyWallet: kit.KeyPairSigner;
 
   before(async () => {
     adminWallet = await helpers.wallet.getAdminWallet();
@@ -36,10 +39,6 @@ describe("profile", async () => {
 
     await checkFunds();
   });
-
-  it("Initialize program", async () => {
-    await solagram.instructions.initialize.initializeProgram(adminWallet);
-  })
 
   it("Create profiles", async () => {
     await solagram.instructions.profile.createProfile(aliceWallet, "Alice");

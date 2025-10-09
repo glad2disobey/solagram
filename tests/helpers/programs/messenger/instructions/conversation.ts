@@ -42,7 +42,7 @@ export async function openConversation(owner: kit.KeyPairSigner, title: string) 
     owner,
   });
 
-  await transaction.executeTransaction(owner, [openConversationInstruction, registerConversation]);
+  await transaction.executeTransaction([owner], [openConversationInstruction, registerConversation]);
 }
 
 export async function addParticipant(
@@ -77,5 +77,5 @@ export async function addParticipant(
     signer,
   });
 
-  await transaction.executeTransaction(signer, [addParticipantInstruction]);
+  await transaction.executeTransaction([signer], [addParticipantInstruction]);
 }

@@ -31,8 +31,8 @@ pub fn initialize_global_state(
 
   global_state.platform = params.platform;
 
-  global_state.name = String::from("Built-in messenger");
-  global_state.description = String::from("Simple messenger");
+  global_state.name = String::from(constants::DEFAULT_MESSENGER_NAME);
+  global_state.description = String::from(constants::DEFAULT_MESSENGER_DESCRIPTION);
 
   global_state.conversation_counter = 0;
   global_state.message_counter = 0;

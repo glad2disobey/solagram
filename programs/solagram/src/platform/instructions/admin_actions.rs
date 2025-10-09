@@ -1,7 +1,16 @@
 use anchor_lang::prelude::*;
 
-use crate::platform::{ states };
-use crate::{ plugin_api, utils, constants, errors };
+use anchor_spl::{
+  token_interface::{
+    Mint, Token2022, TokenAccount,
+  },
+};
+
+use crate::{
+  platform::{ states },
+
+  plugin_api, utils, constants, errors,
+};
 
 #[derive(Accounts)]
 #[instruction(params: states::InstallPluginParams)]
@@ -55,10 +64,42 @@ pub fn install_communication_plugin(
 }
 
 #[derive(Accounts)]
-#[instruction(params: states::InstallPluginParams)]
+#[instruction(params: states::InstallPluginParams, token_params: plugin_api::SetPlatformTokenParams)]
 pub struct InstallTokenPlugin<'info> {
   #[account(
+    init,
+
+    space = utils::constants::ANCHOR_DISCRIMINATOR_SIZE + plugin_api::states::PlatformTokenState::INIT_SPACE,
+    seeds = [
+      String::from(plugin_api::constants::PLATFORM_TOKEN_STATE_SEED_KEY).as_bytes(),
+      params.plugin.as_ref(),
+    ],
+    bump,
+
+    payer = admin,
+  )]
+  pub platform_token_state: Account<'info, plugin_api::states::PlatformTokenState>,
+
+  #[account(
+    init,
+
+    token::mint = mint,
+    token::authority = platform_token_treasury_state,
+    token::token_program = token_program,
+
+    seeds = [
+      String::from(plugin_api::constants::PLATFORM_TOKEN_TREASURY_STATE_SEED_KEY).as_bytes(),
+      params.plugin.as_ref(),
+    ],
+    bump,
+
+    payer = admin
+  )]
+  pub platform_token_treasury_state: InterfaceAccount<'info, TokenAccount>,
+
+  #[account(
     mut,
+
     seeds = [String::from(plugin_api::constants::TOKEN_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump = token_plugin_list_state.bump,
 
@@ -74,6 +115,7 @@ pub struct InstallTokenPlugin<'info> {
   #[account(
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
     constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
       @ errors::SolagramError::Unauthorized,
   )]
@@ -81,14 +123,19 @@ pub struct InstallTokenPlugin<'info> {
 
   #[account(mut)]
   pub admin: Signer<'info>,
+
+  pub mint: InterfaceAccount<'info, Mint>,
+  pub token_program: Program<'info, Token2022>,
   pub system_program: Program<'info, System>,
 }
 
 pub fn install_token_plugin(
   ctx: Context<InstallTokenPlugin>,
   params: states::InstallPluginParams,
+  token_params: plugin_api::SetPlatformTokenParams,
 ) -> Result<()> {
   let token_plugin_list_state = &mut ctx.accounts.token_plugin_list_state;
+  let platform_token_state = &mut ctx.accounts.platform_token_state;
 
   require!(
     !token_plugin_list_state.pubkeys.contains(&params.plugin),
@@ -101,6 +148,9 @@ pub fn install_token_plugin(
   );
 
   token_plugin_list_state.pubkeys.push(params.plugin);
+
+  platform_token_state.mint_address = ctx.accounts.mint.key();
+  platform_token_state.airdrop_amount = token_params.airdrop_amount;
   
   Ok(())
 }

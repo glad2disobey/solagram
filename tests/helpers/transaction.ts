@@ -10,13 +10,13 @@ type TransactionMessage = kit.BaseTransactionMessage & kit.TransactionMessageWit
 type SignedTransactionMessage = kit.SendableTransaction & kit.Transaction & kit.TransactionMessageWithBlockhashLifetime;
 
 export async function createTransactionBasement(
-  feePayerSigner: kit.KeyPairSigner,
-) {
+  signerList: kit.KeyPairSigner[],
+): Promise<TransactionMessage> {
   const { value: latestBlockhash } = await rpcClient.rpc.getLatestBlockhash().send();
 
   return kit.pipe(
     kit.createTransactionMessage({ version: 0 }),
-    (tx) => kit.setTransactionMessageFeePayerSigner(feePayerSigner, tx),
+    (tx) => kit.setTransactionMessageFeePayer(signerList[0].address, tx),
     (tx) => kit.setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, tx)
   );
 }
@@ -28,20 +28,22 @@ export async function signAndSendTransaction(
   const signedTransaction = await kit.signTransactionMessageWithSigners(transactionMessage);
   const signature = kit.getSignatureFromTransaction(signedTransaction);
 
-  await kit.assertIsSendableTransaction(signedTransaction);
+  kit.assertIsSendableTransaction(signedTransaction);
   await sendAndConfirmTransaction(signedTransaction as SignedTransactionMessage, { commitment });
 
   return signature;
 }
 
 export async function executeTransaction(
-  wallet: kit.KeyPairSigner,
+  signerList: kit.KeyPairSigner[],
   instructions: kit.Instruction[],
   commitment: kit.Commitment = "confirmed",
 ) {
-  await kit.pipe(
-    await createTransactionBasement(wallet),
+  const transactionMessage = kit.pipe(
+    await createTransactionBasement(signerList),
     (tx) => kit.appendTransactionMessageInstructions(instructions, tx),
-    (tx) => signAndSendTransaction(tx, commitment),
+    (tx) => kit.addSignersToTransactionMessage(signerList, tx),
   );
+
+  await signAndSendTransaction(transactionMessage, commitment);
 };
