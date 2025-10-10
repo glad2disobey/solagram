@@ -8,7 +8,6 @@ pub mod instructions;
 pub mod states;
 
 use instructions::*;
-use states::*;
 
 declare_id!("4kmeDwmjEiVaGHSD3CFgYukd3nSt4eNNBwJ2eEdb2sqK");
 

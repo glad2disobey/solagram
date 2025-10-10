@@ -47,6 +47,27 @@ pub mod solagram {
     admin_actions::install_application_plugin(ctx, params)
   }
 
+  pub fn uninstall_communication_plugin(
+    ctx: Context<UninstallCommunicationPlugin>,
+    params: platform::states::UninstallPluginParams,
+  ) -> Result<()> {
+    admin_actions::uninstall_communication_plugin(ctx, params)
+  }
+
+  pub fn uninstall_token_plugin(
+    ctx: Context<UninstallTokenPlugin>,
+    params: platform::states::UninstallPluginParams,
+  ) -> Result<()> {
+    admin_actions::uninstall_token_plugin(ctx, params)
+  }
+
+  pub fn uninstall_application_plugin(
+    ctx: Context<UninstallApplicationPlugin>,
+    params: platform::states::UninstallPluginParams,
+  ) -> Result<()> {
+    admin_actions::uninstall_application_plugin(ctx, params)
+  }
+
   pub fn create_profile(
     ctx: Context<CreateProfile>,
     name: String,

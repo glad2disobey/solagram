@@ -105,5 +105,17 @@ describe("profile", async () => {
 
     const outOfBoundsPlugin = await mocks.plugin.createPlugin();
     await assert.rejects(solagram.instructions.admin.installPlugin(adminWallet, outOfBoundsPlugin, "application"));
+
+    const applicationPluginListPDA = await solagram.pda.getApplicationPluginListStatePDA();
+    let applicationPluginListAccount = await solagramProgramClient
+      .fetchPubkeyList(rpcClient.rpc, applicationPluginListPDA);
+
+    for await (const plugin of applicationPluginListAccount.data.pubkeys) {
+      await solagram.instructions.admin.uninstallPlugin(adminWallet, plugin, "application");
+    }
+
+    applicationPluginListAccount = await solagramProgramClient
+      .fetchPubkeyList(rpcClient.rpc, applicationPluginListPDA);
+    assert.deepStrictEqual(applicationPluginListAccount.data.pubkeys, []);
   });
 });

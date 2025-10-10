@@ -8,11 +8,13 @@ import { renderVisitor as renderJavaScriptVisitor } from "@codama/renderers-js";
 import solagramIdl from "../target/idl/solagram.json";
 import messengerIdl from "../target/idl/messenger.json";
 import tokenIdl from "../target/idl/token.json";
+import applicationIdl from "../target/idl/application.json";
 
 const anchorIdlBundleList = [
   { program: "solagram", idl: solagramIdl },
   { program: "messenger", idl: messengerIdl },
   { program: "token", idl: tokenIdl },
+  { program: "application", idl: applicationIdl },
 ];
 
 const jsClientPath = path.join(__dirname, "..", "clients", "js", "src", "generated");

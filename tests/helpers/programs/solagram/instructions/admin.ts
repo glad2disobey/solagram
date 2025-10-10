@@ -74,3 +74,53 @@ export async function installPlugin(
 
   await transaction.executeTransaction([wallet], [installPluginInstruction]);
 }
+
+export async function uninstallPlugin(
+  wallet: kit.KeyPairSigner,
+
+  plugin: kit.Address,
+  pluginType: plugins.types.PluginType,
+) {
+  const globalState = await pda.getGlobalStatePDA();
+  const pluginState = await pda.getPluginStatePDA(pluginType);
+
+  const installPluginInstructionOptions = {
+    globalState,
+
+    admin: wallet,
+
+    params: {
+      plugin,
+    }
+  };
+
+  const installPluginInstruction = await (async () => {
+    switch (pluginType) {
+      case "communication":
+        return solagramProgramClient.getUninstallCommunicationPluginInstruction({
+          ...installPluginInstructionOptions,
+          communicationPluginListState: pluginState,
+        });
+
+      case "token":
+        const platformTokenStatePDA = await pda.getPlatformTokenStatePDA(plugin);
+
+        return solagramProgramClient.getUninstallTokenPluginInstruction({
+          ...installPluginInstructionOptions,
+          tokenPluginListState: pluginState,
+          
+          platformTokenState: platformTokenStatePDA,
+        });
+
+      case "application":
+        return solagramProgramClient.getUninstallApplicationPluginInstruction({
+          ...installPluginInstructionOptions,
+          applicationPluginListState: pluginState,
+        });
+
+      default: throw new error.PluginTypeIsNotSupported();
+    }
+  })();
+
+  await transaction.executeTransaction([wallet], [installPluginInstruction]);
+}

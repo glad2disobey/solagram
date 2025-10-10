@@ -205,3 +205,166 @@ pub fn install_application_plugin(
   
   Ok(())
 }
+
+#[derive(Accounts)]
+#[instruction(params: states::UninstallPluginParams)]
+pub struct UninstallCommunicationPlugin<'info> {
+  #[account(
+    mut,
+    seeds = [String::from(plugin_api::constants::COMMUNICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
+    bump = communication_plugin_list_state.bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      communication_plugin_list_state.pubkeys.len() - 1,
+      plugin_api::constants::MAX_COMMUNICATION_PLUGINS_COUNT,
+    ).unwrap(),
+    realloc::payer = admin,
+    realloc::zero = false,
+  )]
+  pub communication_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
+    bump,
+    constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
+      @ errors::SolagramError::Unauthorized,
+  )]
+  pub global_state: Account<'info, states::GlobalState>,
+
+  #[account(mut)]
+  pub admin: Signer<'info>,
+  pub system_program: Program<'info, System>,
+}
+
+pub fn uninstall_communication_plugin(
+  ctx: Context<UninstallCommunicationPlugin>,
+  params: states::UninstallPluginParams,
+) -> Result<()> {
+  let communication_plugin_list_state = &mut ctx.accounts.communication_plugin_list_state;
+
+  require!(
+    communication_plugin_list_state.pubkeys.contains(&params.plugin),
+    errors::SolagramError::PluginNotFound,
+  );
+
+  let plugin_index = communication_plugin_list_state.pubkeys
+    .iter().position(|x| x == &params.plugin).unwrap();
+
+  communication_plugin_list_state.pubkeys.remove(plugin_index);
+  
+  Ok(())
+}
+
+#[derive(Accounts)]
+#[instruction(params: states::UninstallPluginParams)]
+pub struct UninstallTokenPlugin<'info> {
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(plugin_api::constants::PLATFORM_TOKEN_STATE_SEED_KEY).as_bytes(),
+      params.plugin.as_ref(),
+    ],
+    bump,
+
+    close = admin,
+  )]
+  pub platform_token_state: Account<'info, plugin_api::states::PlatformTokenState>,
+
+  #[account(
+    mut,
+
+    seeds = [String::from(plugin_api::constants::TOKEN_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
+    bump = token_plugin_list_state.bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      token_plugin_list_state.pubkeys.len() - 1,
+      plugin_api::constants::MAX_TOKEN_PLUGINS_COUNT,
+    ).unwrap(),
+    realloc::payer = admin,
+    realloc::zero = false,
+  )]
+  pub token_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
+    bump,
+
+    constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
+      @ errors::SolagramError::Unauthorized,
+  )]
+  pub global_state: Account<'info, states::GlobalState>,
+
+  #[account(mut)]
+  pub admin: Signer<'info>,
+
+  pub system_program: Program<'info, System>,
+}
+
+pub fn uninstall_token_plugin(
+  ctx: Context<UninstallTokenPlugin>,
+  params: states::UninstallPluginParams,
+) -> Result<()> {
+  let token_plugin_list_state = &mut ctx.accounts.token_plugin_list_state;
+
+  require!(
+    token_plugin_list_state.pubkeys.contains(&params.plugin),
+    errors::SolagramError::PluginNotFound,
+  );
+
+  let plugin_index = token_plugin_list_state.pubkeys
+    .iter().position(|x| x == &params.plugin).unwrap();
+
+  token_plugin_list_state.pubkeys.remove(plugin_index);
+  
+  Ok(())
+}
+
+#[derive(Accounts)]
+#[instruction(params: states::UninstallPluginParams)]
+pub struct UninstallApplicationPlugin<'info> {
+  #[account(
+    mut,
+    seeds = [String::from(plugin_api::constants::APPLICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
+    bump = application_plugin_list_state.bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      application_plugin_list_state.pubkeys.len() - 1,
+      plugin_api::constants::MAX_APPLICATION_PLUGINS_COUNT,
+    ).unwrap(),
+    realloc::payer = admin,
+    realloc::zero = false,
+  )]
+  pub application_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
+    bump,
+    constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
+      @ errors::SolagramError::Unauthorized,
+  )]
+  pub global_state: Account<'info, states::GlobalState>,
+  
+  #[account(mut)]
+  pub admin: Signer<'info>,
+  pub system_program: Program<'info, System>,
+}
+
+pub fn uninstall_application_plugin(
+  ctx: Context<UninstallApplicationPlugin>,
+  params: states::UninstallPluginParams,
+) -> Result<()> {
+  let application_plugin_list_state = &mut ctx.accounts.application_plugin_list_state;
+
+  require!(
+    application_plugin_list_state.pubkeys.contains(&params.plugin),
+    errors::SolagramError::PluginNotFound,
+  );
+
+  let plugin_index = application_plugin_list_state.pubkeys
+    .iter().position(|x| x == &params.plugin).unwrap();
+
+  application_plugin_list_state.pubkeys.remove(plugin_index);
+  
+  Ok(())
+}
