@@ -9,10 +9,12 @@ use solagram::utils;
 pub struct InitializeGlobalState<'info> {
   #[account(
     init,
-    payer = admin,
+
     space = utils::constants::ANCHOR_DISCRIMINATOR_SIZE + states::GlobalState::INIT_SPACE,
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
+    payer = admin,
   )]
   pub global_state: Account<'info, states::GlobalState>,
 

@@ -2,19 +2,19 @@ import { before, describe, it } from "node:test";
 
 import * as kit from "@solana/kit";
 
-import * as helpers from "../../helpers";
+import * as lib from "../../../client/lib";
 
-const solagram = helpers.programs.solagram;
+const solagram = lib.programs.solagram;
 
-describe("profile", async () => {
+describe("Platform", async () => {
 
   let adminWallet: kit.KeyPairSigner;
 
   before(async () => {
-    adminWallet = await helpers.wallet.getAdminWallet();
+    adminWallet = await lib.wallet.getAdminWallet();
   });
 
-  it("Initialize program", async () => {
-    await solagram.instructions.initialize.initializeProgram(adminWallet);
+  it("Initialize platform", async () => {
+    await solagram.transactions.initialize.initializePlatform({ admin: adminWallet });
   });
 });

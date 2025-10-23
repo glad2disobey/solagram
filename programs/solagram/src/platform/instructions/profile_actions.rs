@@ -37,18 +37,21 @@ pub struct CreateProfile<'info> {
 
   #[account(
     init,
-    payer = signer,
+
     space = utils::pubkeys::PubkeyList::space_for(0, constants::MAX_PROFILE_COMMUNICATION_LIST_LENGTH).unwrap(),
     seeds = [
       String::from(constants::PROFILE_COMMUNICATION_LIST_STATE_SEED_KEY).as_bytes(),
       signer.key().as_ref(),
     ],
     bump,
+
+    payer = signer,
   )]
   pub profile_communication_list_state: Account<'info, utils::pubkeys::PubkeyList>,
   
   #[account(
     mut,
+
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
   )]
@@ -76,7 +79,6 @@ pub fn create_profile(
   profile_state.updated_at = Clock::get()?.unix_timestamp;
 
   let profile_communication_list_state = &mut ctx.accounts.profile_communication_list_state;
-
   profile_communication_list_state.pubkeys = Vec::new();
   profile_communication_list_state.bump = ctx.bumps.profile_communication_list_state;
 

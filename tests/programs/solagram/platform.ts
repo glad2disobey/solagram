@@ -5,24 +5,13 @@ import * as kit from "@solana/kit";
 
 import * as solagramProgramClient from "../../../clients/js/src/generated/solagram";
 
-import * as helpers from "../../helpers";
+import * as lib from "../../../client/lib";
 import * as mocks from "../../mocks";
 
-const solagram = helpers.programs.solagram;
+const solagram = lib.programs.solagram;
 
-describe("profile", async () => {
-  const rpcClient = helpers.connection.getRpcClient();
-
-  async function checkFunds() {
-    const [aliceBalance, barryBalance, cindyBalance] = await Promise.all(
-      [aliceWallet, barryWallet, cindyWallet]
-        .map(wallet => rpcClient.rpc.getBalance(wallet.address).send())
-    );
-
-    console.log("Alice's balance: ", aliceBalance);
-    console.log("Barry's balance: ", barryBalance);
-    console.log("Cindy's balance: ", cindyBalance);
-  }
+describe("Profile", async () => {
+  const rpcClient = lib.connection.getRpcClient();
 
   let adminWallet: kit.KeyPairSigner,
 
@@ -31,35 +20,31 @@ describe("profile", async () => {
     cindyWallet: kit.KeyPairSigner;
 
   before(async () => {
-    adminWallet = await helpers.wallet.getAdminWallet();
+    adminWallet = await lib.wallet.getAdminWallet();
 
-    aliceWallet = await helpers.wallet.makeWallet(3_000_000_000n);
-    barryWallet = await helpers.wallet.makeWallet();
-    cindyWallet = await helpers.wallet.makeWallet(0n);
-
-    await checkFunds();
+    aliceWallet = await lib.wallet.makeWallet(3_000_000_000n);
+    barryWallet = await lib.wallet.makeWallet();
+    cindyWallet = await lib.wallet.makeWallet(0n);
   });
 
   it("Create profiles", async () => {
-    await solagram.instructions.profile.createProfile(aliceWallet, "Alice");
-    await solagram.instructions.profile.createProfile(barryWallet, "Barry");
+    await solagram.transactions.profile.createProfile({ wallet: aliceWallet, name: "Alice" });
+    await solagram.transactions.profile.createProfile({ wallet: barryWallet, name: "Barry" });
     
-    await assert.rejects(solagram.instructions.profile.createProfile(cindyWallet, "Cindy"));
-    await checkFunds();
+    await assert.rejects(solagram.transactions.profile.createProfile({ wallet: cindyWallet, name: "Cindy" }));
 
-    await helpers.wallet.airdropToWallet(cindyWallet, 1_000_000_000n);
+    await lib.wallet.airdropToWallet(cindyWallet, 1_000_000_000n);
 
     await assert.rejects(
-      solagram.instructions.profile.createProfile(
-        cindyWallet,
-        "VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongName",
-      )
+      solagram.transactions.profile.createProfile({
+        wallet: cindyWallet,
+        name: "VeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongName",
+      })
     );
 
-    await solagram.instructions.profile.createProfile(cindyWallet, "Cindy");
-    await checkFunds();
+    await solagram.transactions.profile.createProfile({ wallet: cindyWallet, name: "Cindy" });
 
-    await assert.rejects(solagram.instructions.profile.createProfile(barryWallet, "Barry"));
+    await assert.rejects(solagram.transactions.profile.createProfile({ wallet: barryWallet, name: "Barry" }));
 
     const [aliceProfile, barryProfile, cindyProfile] = await solagramProgramClient.fetchAllProfileState(
       rpcClient.rpc,
@@ -79,19 +64,23 @@ describe("profile", async () => {
   it("Install plugins", async () => {
     const applicationPlugin = await mocks.plugin.createPlugin();
 
-    await assert.rejects(solagram.instructions.admin.installPlugin(
-      adminWallet,
-      applicationPlugin,
-      "abc" as "application",
-    ));
+    await assert.rejects(solagram.transactions.admin.installPlugin({
+      wallet: adminWallet,
+      plugin: applicationPlugin,
+      pluginType: "abc" as "application",
+    }));
 
-    await solagram.instructions.admin.installPlugin(
-      adminWallet,
-      applicationPlugin,
-      "application",
-    );
+    await solagram.transactions.admin.installPlugin({
+      wallet: adminWallet,
+      plugin: applicationPlugin,
+      pluginType: "application",
+    });
 
-    await assert.rejects(solagram.instructions.admin.installPlugin(adminWallet, applicationPlugin, "application"));
+    await assert.rejects(solagram.transactions.admin.installPlugin({
+      wallet: adminWallet,
+      plugin: applicationPlugin,
+      pluginType: "application",
+    }));
 
     const plugins = await Promise.all(
       Array.from({ length: solagram.plugins.constants.MAX_COMMUNICATION_PLUGINS_COUNT - 1 })
@@ -100,18 +89,30 @@ describe("profile", async () => {
     );
 
     await Promise.all(plugins.map(
-      plugin => solagram.instructions.admin.installPlugin(adminWallet, plugin, "application")
+      plugin => solagram.transactions.admin.installPlugin({
+        wallet: adminWallet,
+        plugin,
+        pluginType: "application",
+      })
     ));
 
     const outOfBoundsPlugin = await mocks.plugin.createPlugin();
-    await assert.rejects(solagram.instructions.admin.installPlugin(adminWallet, outOfBoundsPlugin, "application"));
+    await assert.rejects(solagram.transactions.admin.installPlugin({
+      wallet: adminWallet,
+      plugin: outOfBoundsPlugin,
+      pluginType: "application",
+    }));
 
     const applicationPluginListPDA = await solagram.pda.getApplicationPluginListStatePDA();
     let applicationPluginListAccount = await solagramProgramClient
       .fetchPubkeyList(rpcClient.rpc, applicationPluginListPDA);
 
     for await (const plugin of applicationPluginListAccount.data.pubkeys) {
-      await solagram.instructions.admin.uninstallPlugin(adminWallet, plugin, "application");
+      await solagram.transactions.admin.uninstallPlugin({
+        wallet: adminWallet,
+        plugin,
+        pluginType: "application",
+      });
     }
 
     applicationPluginListAccount = await solagramProgramClient

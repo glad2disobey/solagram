@@ -7,37 +7,45 @@ use crate::{ plugin_api, utils, constants };
 pub struct InitializeGlobalState<'info> {
   #[account(
     init,
-    payer = admin,
+
     space = utils::constants::ANCHOR_DISCRIMINATOR_SIZE + states::GlobalState::INIT_SPACE,
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
+    payer = admin,
   )]
   pub global_state: Account<'info, states::GlobalState>,
 
   #[account(
     init,
-    payer = admin,
+
     space = utils::pubkeys::PubkeyList::space_for(0, plugin_api::constants::MAX_COMMUNICATION_PLUGINS_COUNT).unwrap(),
     seeds = [String::from(plugin_api::constants::COMMUNICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump,
+
+    payer = admin,
   )]
   pub communication_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
   #[account(
     init,
-    payer = admin,
+
     space = utils::pubkeys::PubkeyList::space_for(0, plugin_api::constants::MAX_TOKEN_PLUGINS_COUNT).unwrap(),
     seeds = [String::from(plugin_api::constants::TOKEN_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump,
+
+    payer = admin,
   )]
   pub token_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
   #[account(
     init,
-    payer = admin,
+
     space = utils::pubkeys::PubkeyList::space_for(0, plugin_api::constants::MAX_APPLICATION_PLUGINS_COUNT).unwrap(),
     seeds = [String::from(plugin_api::constants::APPLICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump,
+
+    payer = admin,
   )]
   pub application_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 

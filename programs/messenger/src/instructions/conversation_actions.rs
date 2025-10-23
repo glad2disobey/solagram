@@ -10,6 +10,7 @@ use solagram::program::*;
 pub struct OpenConversation<'info> {
   #[account(
     mut,
+
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
   )]
@@ -17,13 +18,15 @@ pub struct OpenConversation<'info> {
 
   #[account(
     init,
-    payer = owner,
+
     space = solagram::utils::constants::ANCHOR_DISCRIMINATOR_SIZE + states::ConversationState::INIT_SPACE,
     seeds = [
       String::from(solagram::plugin_api::constants::CONVERSATION_STATE_SEED_KEY).as_bytes(),
       &global_state.conversation_counter.to_le_bytes(),
     ],
     bump,
+
+    payer = owner,
   )]
   pub conversation_state: Account<'info, states::ConversationState>,
 
@@ -38,8 +41,8 @@ pub fn open_conversation(
   ctx: Context<OpenConversation>,
   params: states::OpenConversationParams,
 ) -> Result<()> {
-  let conversation_state = &mut ctx.accounts.conversation_state;
   let global_state = &mut ctx.accounts.global_state;
+  let conversation_state = &mut ctx.accounts.conversation_state;
 
   conversation_state.owner = ctx.accounts.owner.key();
 
@@ -82,6 +85,7 @@ pub struct AddParticipant<'info> {
 
   #[account(
     mut,
+
     seeds = [
       String::from(solagram::constants::PROFILE_COMMUNICATION_LIST_STATE_SEED_KEY).as_bytes(),
       params.participant.key().as_ref(),
@@ -104,7 +108,6 @@ pub fn add_participant(
   params: states::AddParticipantParams,
 ) -> Result<()> {
   let conversation_state = &mut ctx.accounts.conversation_state;
-  let _global_state = &mut ctx.accounts.global_state;
 
   let platform_conversation_state = &mut ctx.accounts.platform_conversation_state;
   let platform_profile_communication_list_state = &mut ctx.accounts.platform_profile_communication_list_state;
@@ -124,11 +127,12 @@ pub fn add_participant(
     cpi_accounts,
   );
 
-  let cpi_params = solagram::plugin_api::states::AddPlatformConversationParticipantParams {
-    platform_conversation: platform_conversation_state.key(),
+  let cpi_params =
+    solagram::plugin_api::states::AddPlatformConversationParticipantParams {
+      platform_conversation: platform_conversation_state.key(),
 
-    profile: params.participant,
-  };
+      profile: params.participant,
+    };
 
   solagram::cpi::add_conversation_participant(cpi_context, cpi_params)?;
 

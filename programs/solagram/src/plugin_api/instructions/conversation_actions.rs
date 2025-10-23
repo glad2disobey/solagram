@@ -1,20 +1,21 @@
 use anchor_lang::prelude::*;
 
-use crate::{ plugin_api, utils, errors };
-use crate::{ constants };
+use crate::{ plugin_api, utils, constants, errors };
 
 #[derive(Accounts)]
 #[instruction(params: plugin_api::states::RegisterPlatformConversationParams)]
 pub struct RegisterConversation<'info> {
   #[account(
     init,
-    payer = owner,
+
     space = utils::constants::ANCHOR_DISCRIMINATOR_SIZE + plugin_api::states::PlatformConversationState::INIT_SPACE,
     seeds = [
       String::from(plugin_api::constants::PLATFORM_CONVERSATION_STATE_SEED_KEY).as_bytes(),
       params.conversation.key().as_ref(),
     ],
     bump,
+
+    payer = owner,
   )]
   pub platform_conversation_state: Account<'info, plugin_api::states::PlatformConversationState>,
 
@@ -26,6 +27,7 @@ pub struct RegisterConversation<'info> {
 
   #[account(
     mut,
+
     seeds = [
       String::from(constants::PROFILE_COMMUNICATION_LIST_STATE_SEED_KEY).as_bytes(),
       owner.key().as_ref(),
@@ -105,6 +107,7 @@ pub struct AddConversationParticipant<'info> {
 
   #[account(
     mut,
+
     seeds = [
       String::from(constants::PROFILE_COMMUNICATION_LIST_STATE_SEED_KEY).as_bytes(),
       params.profile.key().as_ref(),

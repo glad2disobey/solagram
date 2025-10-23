@@ -15,6 +15,9 @@ pub enum SolagramError {
   #[msg("Insufficient funds")]
   InsufficientFunds,
 
+  #[msg("Remaining accounts list is malformed")]
+  RemainingAccountsListMalformed,
+
   #[msg("Plugin is already installed")]
   PluginAlreadyInstalled,
   #[msg("Plugin not found")]
@@ -24,6 +27,15 @@ pub enum SolagramError {
   #[msg("Plugin type is not supported")]
   PluginUnsupported,
 
-  #[msg("Create token account params malformed")]
+  #[msg("Create token account params are malformed")]
   CreateTokenAccountParamsMalformed,
+
+  #[msg("Set recipient params are malformed")]
+  SetRecipientParamsMalformed,
+  #[msg("Start application session params are malformed")]
+  StartApplicationSessionParamsMalformed,
+  #[msg("Session is already signed")]
+  SessionAlreadySigned,
+  #[msg("Session is not fully signed")]
+  SessionNotFullySigned,
 }

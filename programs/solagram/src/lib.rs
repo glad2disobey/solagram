@@ -12,6 +12,7 @@ use anchor_lang::prelude::*;
 
 use platform::instructions::*;
 use plugin_api::instructions::conversation_actions::*;
+use plugin_api::instructions::session_actions::*;
 
 declare_id!("7W7K9yAshEJBgPRNPW1fDiXuVDzjKBPcBWCC6UGrWxKC");
 
@@ -25,7 +26,7 @@ pub mod solagram {
     initialize::initialize_global_state(ctx)
   }
 
-  pub fn install_comunication_plugin(
+  pub fn install_communication_plugin(
     ctx: Context<InstallCommunicationPlugin>,
     params: platform::states::InstallPluginParams,
   ) -> Result<()> {
@@ -94,5 +95,40 @@ pub mod solagram {
     params: plugin_api::states::AddPlatformConversationParticipantParams
   ) -> Result<()> {
     plugin_api::instructions::add_conversation_participant(ctx, params)
+  }
+
+  pub fn register_platform_session(
+    ctx: Context<RegisterPlatformSession>,
+    params: plugin_api::states::RegisterPlatformSessionParams,
+  ) -> Result<()> {
+    plugin_api::instructions::register_platform_session(ctx, params)
+  }
+
+  pub fn sign_platform_session(
+    ctx: Context<SignPlatformSession>,
+    params: plugin_api::states::SignPlatformSessionParams,
+  ) -> Result<()> {
+    plugin_api::instructions::sign_platform_session(ctx, params)
+  }
+
+  pub fn abort_platform_session<'info>(
+    ctx: Context<'_, '_, '_, 'info, AbortPlatformSession<'info>>,
+    params: plugin_api::states::AbortPlatformSessionParams,
+  ) -> Result<()> {
+    plugin_api::instructions::abort_platform_session(ctx, params)
+  }
+
+  pub fn set_recipient<'info>(
+    ctx: Context<SetRecipient>,
+    params: plugin_api::states::SetRecipientParams,
+  ) -> Result<()> {
+    plugin_api::instructions::set_recipient(ctx, params)
+  }
+
+  pub fn close_platform_session<'info>(
+    ctx: Context<'_, '_, '_, 'info, ClosePlatformSession<'info>>,
+    params: plugin_api::states::ClosePlatformSessionParams,
+  ) -> Result<()> {
+    plugin_api::instructions::close_platform_session(ctx, params)
   }
 }

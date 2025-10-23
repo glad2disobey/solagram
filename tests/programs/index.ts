@@ -5,4 +5,5 @@ describe("Programs", async () => {
   await import("./solagram");
   await import("./messenger");
   await import("./token");
+  await import("./application");
 });

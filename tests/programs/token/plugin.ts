@@ -6,14 +6,14 @@ import * as token from "@solana-program/token-2022";
 
 import * as tokenProgramClient from "../../../clients/js/src/generated/token";
 
-import * as helpers from "../../helpers";
+import * as lib from "../../../client/lib";
 
-const { solagram, token: tokenProgram } = helpers.programs;
+const { solagram, token: tokenProgram } = lib.programs;
 
-const constants = helpers.programs.token.constants;
+const constants = lib.programs.token.constants;
 
 describe("Token", () => {
-  const rpcClient = helpers.connection.getRpcClient();
+  const rpcClient = lib.connection.getRpcClient();
 
   let adminWallet: kit.KeyPairSigner;
   let aliceWallet: kit.KeyPairSigner;
@@ -28,30 +28,30 @@ describe("Token", () => {
   };
 
   before(async () => {
-    adminWallet = await helpers.wallet.getAdminWallet();
+    adminWallet = await lib.wallet.getAdminWallet();
 
-    aliceWallet = await helpers.wallet.makeWallet(3_000_000_000n);
+    aliceWallet = await lib.wallet.makeWallet(3_000_000_000n);
 
     mint = await kit.generateKeyPairSigner();
   });
 
   it("Initialize token", async () => {
-    await helpers.programs.token.instructions.initialize.initializePlugin(
-      adminWallet,
+    await lib.programs.token.transactions.initialize.initialize({
+      admin: adminWallet,
 
       mint,
-    );
+    });
 
     const mintAccount = await token.fetchMint(rpcClient.rpc, mint.address);
 
-    const tokenMetadataExtension = helpers.token.getExtension(mintAccount, "TokenMetadata");
+    const tokenMetadataExtension = lib.token.getExtension(mintAccount, "TokenMetadata");
     assert.deepStrictEqual(tokenMetadataExtension["mint"], mint.address);
     assert.deepStrictEqual(tokenMetadataExtension["name"], constants.TOKEN_NAME);
     assert.deepStrictEqual(tokenMetadataExtension["symbol"], constants.TOKEN_SYMBOL);
     assert.deepStrictEqual(tokenMetadataExtension["uri"], constants.TOKEN_URI);
     assert.deepStrictEqual(kit.unwrapOption(tokenMetadataExtension["updateAuthority"]), adminWallet.address);
 
-    const tokenTransferFeeExtension = helpers.token.getExtension(mintAccount, "TransferFeeConfig");
+    const tokenTransferFeeExtension = lib.token.getExtension(mintAccount, "TransferFeeConfig");
     assert.deepStrictEqual(tokenTransferFeeExtension["olderTransferFee"], transferFeeExpected);
     assert.deepStrictEqual(tokenTransferFeeExtension["newerTransferFee"], transferFeeExpected);
     assert.deepStrictEqual(tokenTransferFeeExtension["transferFeeConfigAuthority"], adminWallet.address);
@@ -59,12 +59,12 @@ describe("Token", () => {
   });
 
   it("Install plugin", async () => {
-    await solagram.instructions.admin.installPlugin(
-      adminWallet,
-      tokenProgramClient.TOKEN_PROGRAM_ADDRESS,
-      "token",
-      { mint: mint.address },
-    );
+    await solagram.transactions.admin.installPlugin({
+      wallet: adminWallet,
+      plugin: tokenProgramClient.TOKEN_PROGRAM_ADDRESS,
+      pluginType: "token",
+      mint: mint.address,
+    });
   });
 
   it("Mint tokens", async () => {
@@ -72,7 +72,7 @@ describe("Token", () => {
       tokenProgramClient.TOKEN_PROGRAM_ADDRESS
     );
 
-    await tokenProgram.instructions.mintTo.mintTo({
+    await tokenProgram.transactions.mint.mintTo({
       mint: mint.address,
       authority: adminWallet,
       destination: platformTokenTreasuryStatePDA,
@@ -84,14 +84,14 @@ describe("Token", () => {
   });
 
   it("Create profiles", async () => {
-    await solagram.instructions.profile.createProfile(aliceWallet, "Alice");
+    await solagram.transactions.profile.createProfile({ wallet: aliceWallet, name: "Alice" });
 
     const profileTreasuryPDA = await solagram.pda
       .getTokenProfileTreasuryStatePDA(aliceWallet.address, tokenProgramClient.TOKEN_PROGRAM_ADDRESS);
 
-    const defaultTokenAirdropAmount = helpers.programs.solagram.plugins.constants.DEFAULT_TOKEN_AIRDROP_AMOUNT;
+    const defaultTokenAirdropAmount = lib.programs.solagram.plugins.constants.DEFAULT_TOKEN_AIRDROP_AMOUNT;
     const expectedTokenAmount = defaultTokenAirdropAmount
-      - defaultTokenAirdropAmount * (constants.DEFAULT_TRANSFER_FEE_BASIS_POINTS / 10000);
+      - BigInt(Number(defaultTokenAirdropAmount) * (constants.DEFAULT_TRANSFER_FEE_BASIS_POINTS / 10000));
 
     const profileTreasuryAccount = await token.fetchToken(rpcClient.rpc, profileTreasuryPDA);
     assert.deepStrictEqual(profileTreasuryAccount.data.amount, BigInt(expectedTokenAmount));

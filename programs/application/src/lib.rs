@@ -20,6 +20,12 @@ pub mod application {
     ctx: Context<InitializeGlobalState>,
     params: InitalizeGlobalStateParams,
   ) -> Result<()> {
-    initialize_global_state(ctx, params)
+    instructions::initialize_global_state(ctx, params)
+  }
+
+  pub fn start_session(
+    ctx: Context<StartSession>,
+  ) -> Result<()> {
+    instructions::start_session(ctx)
   }
 }

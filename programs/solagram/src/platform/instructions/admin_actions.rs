@@ -17,6 +17,7 @@ use crate::{
 pub struct InstallCommunicationPlugin<'info> {
   #[account(
     mut,
+
     seeds = [String::from(plugin_api::constants::COMMUNICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump = communication_plugin_list_state.bump,
 
@@ -32,6 +33,7 @@ pub struct InstallCommunicationPlugin<'info> {
   #[account(
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
     constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
       @ errors::SolagramError::Unauthorized,
   )]
@@ -93,7 +95,7 @@ pub struct InstallTokenPlugin<'info> {
     ],
     bump,
 
-    payer = admin
+    payer = admin,
   )]
   pub platform_token_treasury_state: InterfaceAccount<'info, TokenAccount>,
 
@@ -160,6 +162,7 @@ pub fn install_token_plugin(
 pub struct InstallApplicationPlugin<'info> {
   #[account(
     mut,
+
     seeds = [String::from(plugin_api::constants::APPLICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump = application_plugin_list_state.bump,
 
@@ -175,6 +178,7 @@ pub struct InstallApplicationPlugin<'info> {
   #[account(
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
     constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
       @ errors::SolagramError::Unauthorized,
   )]
@@ -211,6 +215,7 @@ pub fn install_application_plugin(
 pub struct UninstallCommunicationPlugin<'info> {
   #[account(
     mut,
+
     seeds = [String::from(plugin_api::constants::COMMUNICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump = communication_plugin_list_state.bump,
 
@@ -226,6 +231,7 @@ pub struct UninstallCommunicationPlugin<'info> {
   #[account(
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
     constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
       @ errors::SolagramError::Unauthorized,
   )]
@@ -325,6 +331,7 @@ pub fn uninstall_token_plugin(
 pub struct UninstallApplicationPlugin<'info> {
   #[account(
     mut,
+
     seeds = [String::from(plugin_api::constants::APPLICATION_PLUGIN_LIST_STATE_SEED_KEY).as_bytes()],
     bump = application_plugin_list_state.bump,
 
@@ -340,6 +347,7 @@ pub struct UninstallApplicationPlugin<'info> {
   #[account(
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
+
     constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
       @ errors::SolagramError::Unauthorized,
   )]
