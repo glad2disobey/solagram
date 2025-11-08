@@ -13,8 +13,8 @@ interface MintToInterface {
   authority: kit.KeyPairSigner,
 };
 
-export async function mintTo(options: MintToInterface) {
+export async function mintTo(options: MintToInterface, commitment: kit.Commitment = "confirmed") {
   const mintToInstruction = await instructions.mint.getMintToInstruction(options);
 
-  await transaction.executeTransaction([options.authority], [mintToInstruction]);
+  await transaction.execute([options.authority], [mintToInstruction], commitment);
 }

@@ -9,11 +9,11 @@ interface InitializeInterface {
   mint: kit.KeyPairSigner,
 };
 
-export async function initialize(options: InitializeInterface) {
+export async function initialize(options: InitializeInterface, commitment: kit.Commitment = "confirmed") {
   const initializeInstruction = await instructions.initialize.getInitializeInstruction({
     admin: options.admin,
     mint: options.mint,
   });
 
-  await transaction.executeTransaction([options.admin, options.mint], [initializeInstruction]);
+  await transaction.execute([options.admin, options.mint], [initializeInstruction], commitment);
 }

@@ -1,12 +1,8 @@
 import * as kit from "@solana/kit";
 
-import * as solagramProgramClient from "../../../../../../clients/js/src/generated/solagram";
+import * as platformProgramClient from "../../../../../../clients/js/src/generated/solagram";
 
 import * as pda from "../../pda";
-
-import * as connection from "../../../../connection";
-
-const rpcClient = connection.getRpcClient();
 
 interface GetRegisterConversationInstructionInterface {
   conversation: kit.Address,
@@ -19,12 +15,18 @@ interface GetRegisterConversationInstructionInterface {
 
 export async function getRegisterConversationInstruction(
   options: GetRegisterConversationInstructionInterface
-): Promise<solagramProgramClient.RegisterConversationInstruction> {
-  const communicationPluginListState = await pda.getCommunicationPluginListStatePDA();
-  const platformConversationState = await pda.getPlatformConversationStatePDA(options.conversation);
-  const profileCommunicationListState = await pda.getProfileCommunicationListStatePDA(options.owner.address);
+): Promise<platformProgramClient.RegisterConversationInstruction> {
+  const [
+    communicationPluginListState,
+    platformConversationState,
+    profileCommunicationListState,
+  ] = await Promise.all([
+    pda.getCommunicationPluginListStatePDA(),
+    pda.getPlatformConversationStatePDA(options.conversation),
+    pda.getProfileCommunicationListStatePDA(options.owner.address),
+  ]);
 
-  return solagramProgramClient.getRegisterConversationInstruction({
+  return platformProgramClient.getRegisterConversationInstruction({
     conversation: options.conversation,
 
     communicationPluginListState,
@@ -35,7 +37,7 @@ export async function getRegisterConversationInstruction(
     uniqueConversationNumber: options.uniqueConversationNumber,
 
     owner: options.owner,
-  }) as solagramProgramClient.RegisterConversationInstruction;
+  }) as platformProgramClient.RegisterConversationInstruction;
 }
 
 interface GetAddParticipantInstructionInterface {
@@ -48,9 +50,10 @@ interface GetAddParticipantInstructionInterface {
 
 export async function getAddParticipantInstruction(
   options: GetAddParticipantInstructionInterface,
-): Promise<solagramProgramClient.AddConversationParticipantInstruction> {
+): Promise<platformProgramClient.AddConversationParticipantInstruction> {
   const profileCommunicationListState = await pda.getProfileCommunicationListStatePDA(options.profile);
-  return solagramProgramClient.getAddConversationParticipantInstruction({
+
+  return platformProgramClient.getAddConversationParticipantInstruction({
     platformConversation: options.platformConversation,
 
     platformConversationState: options.platformConversation,
@@ -59,5 +62,5 @@ export async function getAddParticipantInstruction(
     profile: options.profile,
 
     signer: options.signer,
-  }) as solagramProgramClient.AddConversationParticipantInstruction;
+  }) as platformProgramClient.AddConversationParticipantInstruction;
 }

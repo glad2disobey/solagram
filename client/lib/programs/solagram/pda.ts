@@ -34,8 +34,8 @@ export const getProfileStatePDA = async (profileAddress: kit.Address): Promise<k
 export const getProfileCommunicationListStatePDA = async (profileAddress: kit.Address): Promise<kit.Address> =>
   getPDA([constants.PROFILE_COMMUNICATION_LIST_STATE_SEED_KEY, profileAddress]);
 
-export const getPlatformConversationStatePDA = async (conversationStatePDA: kit.Address): Promise<kit.Address> =>
-  getPDA([plugins.constants.PLATFORM_CONVERSATION_STATE_SEED_KEY, conversationStatePDA]);
+export const getPlatformConversationStatePDA = async (conversationStateAddress: kit.Address): Promise<kit.Address> =>
+  getPDA([plugins.constants.PLATFORM_CONVERSATION_STATE_SEED_KEY, conversationStateAddress]);
 
 export const getPlatformTokenStatePDA = async (pluginAddress: kit.Address): Promise<kit.Address> =>
   getPDA([plugins.constants.PLATFORM_TOKEN_STATE_SEED_KEY, pluginAddress]);
@@ -59,3 +59,8 @@ export const getSessionParticipantListStatePDA = async (sessionAddress: kit.Addr
 export const getSessionSignerListStatePDA = async (sessionAddress: kit.Address): Promise<kit.Address> =>
   getPDA([plugins.constants.SESSION_SIGNER_LIST_STATE_SEED_KEY, sessionAddress]);
 
+export const getProfileSessionListStatePDA = async (profileAddress: kit.Address): Promise<kit.Address> =>
+  getPDA([constants.PROFILE_SESSION_LIST_STATE_SEED_KEY, profileAddress]);
+
+export const getProfilePendingSessionListStatePDA = async (profileAddress: kit.Address): Promise<kit.Address> =>
+  getPDA([constants.PROFILE_PENDING_SESSION_LIST_STATE_SEED_KEY, profileAddress]);

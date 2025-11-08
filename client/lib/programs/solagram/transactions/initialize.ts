@@ -7,10 +7,13 @@ interface InitializePlatformInterface {
   admin: kit.KeyPairSigner,
 }
 
-export async function initializePlatform(options: InitializePlatformInterface) {
+export async function initializePlatform(
+  options: InitializePlatformInterface,
+  commitment: kit.Commitment = "confirmed",
+) {
   const initializeInstruction = await instructions.initialize.getInitializeInstruction({
     admin: options.admin,
   });
 
-  await transation.executeTransaction([options.admin], [initializeInstruction]);
+  await transation.execute([options.admin], [initializeInstruction], commitment);
 }

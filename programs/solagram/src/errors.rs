@@ -14,6 +14,8 @@ pub enum SolagramError {
 
   #[msg("Insufficient funds")]
   InsufficientFunds,
+  #[msg("Extra funds found")]
+  ExtraFundsFound,
 
   #[msg("Remaining accounts list is malformed")]
   RemainingAccountsListMalformed,
@@ -38,4 +40,12 @@ pub enum SolagramError {
   SessionAlreadySigned,
   #[msg("Session is not fully signed")]
   SessionNotFullySigned,
+  #[msg("Session is not finished")]
+  SessionNotFinished,
+  #[msg("Invite participant params are malformed")]
+  InviteParticipantParamsMalformed,
+  #[msg("Profile aleready invited")]
+  ProfileAlreadyInvited,
+  #[msg("Purge profile sessions params are malformed")]
+  PurgeProfileSessionsParamsMalformed,
 }

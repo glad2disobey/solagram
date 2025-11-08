@@ -1,8 +1,8 @@
 import * as kit from "@solana/kit";
 
-import * as connection from "./connection";
+import * as lib from "../../client/lib";
 
-const rpcClient = connection.getRpcClient();
+const rpcClient = lib.connection.getRpcClient();
 
 const airdrop = kit.airdropFactory(rpcClient);
 

@@ -13,10 +13,14 @@ interface GetInitializeInstructionInterface {
 export async function getInitializeInstruction(
   options: GetInitializeInstructionInterface,
 ): Promise<applicationProgramClient.InitializeInstruction> {
-  const globalState = await pda.getGlobalStatePDA();
+  const [globalState, pdaSigner] = await Promise.all([
+    pda.getGlobalStatePDA(),
+    pda.getSignerPDA(),
+  ]);
 
   return applicationProgramClient.getInitializeInstruction({
     globalState,
+    pdaSigner,
 
     platform: options.platform,
 

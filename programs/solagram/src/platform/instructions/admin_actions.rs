@@ -34,13 +34,14 @@ pub struct InstallCommunicationPlugin<'info> {
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
 
-    constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
+    constraint = admin.key() == global_state.admin.key()
       @ errors::SolagramError::Unauthorized,
   )]
   pub global_state: Account<'info, states::GlobalState>,
 
   #[account(mut)]
   pub admin: Signer<'info>,
+
   pub system_program: Program<'info, System>,
 }
 
@@ -118,7 +119,7 @@ pub struct InstallTokenPlugin<'info> {
     seeds = [String::from(constants::GLOBAL_STATE_SEED_KEY).as_bytes()],
     bump,
 
-    constraint = admin.key().as_ref() == global_state.admin.key().as_ref()
+    constraint = admin.key() == global_state.admin.key()
       @ errors::SolagramError::Unauthorized,
   )]
   pub global_state: Account<'info, states::GlobalState>,
@@ -137,7 +138,6 @@ pub fn install_token_plugin(
   token_params: plugin_api::SetPlatformTokenParams,
 ) -> Result<()> {
   let token_plugin_list_state = &mut ctx.accounts.token_plugin_list_state;
-  let platform_token_state = &mut ctx.accounts.platform_token_state;
 
   require!(
     !token_plugin_list_state.pubkeys.contains(&params.plugin),
@@ -150,6 +150,8 @@ pub fn install_token_plugin(
   );
 
   token_plugin_list_state.pubkeys.push(params.plugin);
+
+  let platform_token_state = &mut ctx.accounts.platform_token_state;
 
   platform_token_state.mint_address = ctx.accounts.mint.key();
   platform_token_state.airdrop_amount = token_params.airdrop_amount;
@@ -172,6 +174,9 @@ pub struct InstallApplicationPlugin<'info> {
     ).unwrap(),
     realloc::payer = admin,
     realloc::zero = false,
+
+    constraint = !application_plugin_list_state.pubkeys.contains(&params.plugin)
+      @ errors::SolagramError::PluginAlreadyInstalled,
   )]
   pub application_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
@@ -186,6 +191,7 @@ pub struct InstallApplicationPlugin<'info> {
   
   #[account(mut)]
   pub admin: Signer<'info>,
+
   pub system_program: Program<'info, System>,
 }
 
@@ -194,16 +200,6 @@ pub fn install_application_plugin(
   params: states::InstallPluginParams,
 ) -> Result<()> {
   let application_plugin_list_state = &mut ctx.accounts.application_plugin_list_state;
-
-  require!(
-    !application_plugin_list_state.pubkeys.contains(&params.plugin),
-    errors::SolagramError::PluginAlreadyInstalled,
-  );
-
-  require!(
-    application_plugin_list_state.pubkeys.len() < plugin_api::constants::MAX_APPLICATION_PLUGINS_COUNT,
-    errors::SolagramError::PluginLimitExceeded,
-  );
 
   application_plugin_list_state.pubkeys.push(params.plugin);
   
@@ -225,6 +221,9 @@ pub struct UninstallCommunicationPlugin<'info> {
     ).unwrap(),
     realloc::payer = admin,
     realloc::zero = false,
+
+    constraint = communication_plugin_list_state.pubkeys.contains(&params.plugin)
+      @ errors::SolagramError::PluginNotFound,
   )]
   pub communication_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
@@ -239,6 +238,7 @@ pub struct UninstallCommunicationPlugin<'info> {
 
   #[account(mut)]
   pub admin: Signer<'info>,
+
   pub system_program: Program<'info, System>,
 }
 
@@ -247,11 +247,6 @@ pub fn uninstall_communication_plugin(
   params: states::UninstallPluginParams,
 ) -> Result<()> {
   let communication_plugin_list_state = &mut ctx.accounts.communication_plugin_list_state;
-
-  require!(
-    communication_plugin_list_state.pubkeys.contains(&params.plugin),
-    errors::SolagramError::PluginNotFound,
-  );
 
   let plugin_index = communication_plugin_list_state.pubkeys
     .iter().position(|x| x == &params.plugin).unwrap();
@@ -289,6 +284,9 @@ pub struct UninstallTokenPlugin<'info> {
     ).unwrap(),
     realloc::payer = admin,
     realloc::zero = false,
+
+    constraint = token_plugin_list_state.pubkeys.contains(&params.plugin)
+      @ errors::SolagramError::PluginNotFound,
   )]
   pub token_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
@@ -313,11 +311,6 @@ pub fn uninstall_token_plugin(
 ) -> Result<()> {
   let token_plugin_list_state = &mut ctx.accounts.token_plugin_list_state;
 
-  require!(
-    token_plugin_list_state.pubkeys.contains(&params.plugin),
-    errors::SolagramError::PluginNotFound,
-  );
-
   let plugin_index = token_plugin_list_state.pubkeys
     .iter().position(|x| x == &params.plugin).unwrap();
 
@@ -341,6 +334,9 @@ pub struct UninstallApplicationPlugin<'info> {
     ).unwrap(),
     realloc::payer = admin,
     realloc::zero = false,
+
+    constraint = application_plugin_list_state.pubkeys.contains(&params.plugin)
+      @ errors::SolagramError::PluginNotFound,
   )]
   pub application_plugin_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
@@ -363,11 +359,6 @@ pub fn uninstall_application_plugin(
   params: states::UninstallPluginParams,
 ) -> Result<()> {
   let application_plugin_list_state = &mut ctx.accounts.application_plugin_list_state;
-
-  require!(
-    application_plugin_list_state.pubkeys.contains(&params.plugin),
-    errors::SolagramError::PluginNotFound,
-  );
 
   let plugin_index = application_plugin_list_state.pubkeys
     .iter().position(|x| x == &params.plugin).unwrap();

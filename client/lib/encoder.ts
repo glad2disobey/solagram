@@ -32,6 +32,8 @@ export function encodeSeeds(seeds: Array<SeedType>): Array<Uint8Array | kit.Read
         return addressEncoder.encode(seed as kit.Address);
 
       case typeof seed === "string":
+        if (seed.length > 32) throw new error.StringSeedLengthExceeded();
+
         return new TextEncoder().encode(seed);
 
       default:

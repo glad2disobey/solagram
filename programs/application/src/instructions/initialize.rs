@@ -18,6 +18,19 @@ pub struct InitializeGlobalState<'info> {
   )]
   pub global_state: Account<'info, states::GlobalState>,
 
+  #[account(
+    init,
+
+    space = solagram::utils::ANCHOR_DISCRIMINATOR_SIZE,
+
+    seeds = [String::from(solagram::plugin_api::constants::SIGNER_SEED_KEY).as_bytes()],
+    bump,
+
+    payer = admin,
+  )]
+  /// CHECK: manualy checked
+  pub pda_signer: AccountInfo<'info>,
+
   #[account(mut)]
   pub admin: Signer<'info>,
   pub system_program: Program<'info, System>,

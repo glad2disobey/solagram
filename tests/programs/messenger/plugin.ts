@@ -8,6 +8,8 @@ import * as messengerProgramClient from "../../../clients/js/src/generated/messe
 
 import * as lib from "../../../client/lib";
 
+import * as helpers from "../../helpers";
+
 const { solagram, messenger } = lib.programs;
 
 const rpcClient = lib.connection.getRpcClient();
@@ -19,14 +21,15 @@ describe("Messenger", async () => {
   let barryWallet: kit.KeyPairSigner;
   let cindyWallet: kit.KeyPairSigner;
 
-  let aliceConversations: kit.Account<solagramProgramClient.PubkeyList, string>;
+  let aliceConversationListStateAccount: kit.Account<solagramProgramClient.PubkeyList, string>;
 
   before(async () => {
-    adminWallet = await lib.wallet.getAdminWallet();
-
-    aliceWallet = await lib.wallet.makeWallet(3_000_000_000n);
-    barryWallet = await lib.wallet.makeWallet(4_000_000_000n);
-    cindyWallet = await lib.wallet.makeWallet(5_000_000_000n);
+    [adminWallet, aliceWallet, barryWallet, cindyWallet] = await Promise.all([
+      helpers.wallet.getAdminWallet(),
+      helpers.wallet.makeWallet(3_000_000_000n),
+      helpers.wallet.makeWallet(4_000_000_000n),
+      helpers.wallet.makeWallet(5_000_000_000n),
+    ]);
   });
 
   it("Initialize plugin", async () => {
@@ -36,9 +39,11 @@ describe("Messenger", async () => {
   })
 
   it("Create profiles", async () => {
-    await solagram.transactions.profile.createProfile({ wallet: aliceWallet, name: "Alice" });
-    await solagram.transactions.profile.createProfile({ wallet: barryWallet, name: "Barry" });
-    await solagram.transactions.profile.createProfile({ wallet: cindyWallet, name: "Cindy" });
+    await Promise.all([
+      solagram.transactions.profile.createProfile({ wallet: aliceWallet, name: "Alice" }),
+      solagram.transactions.profile.createProfile({ wallet: barryWallet, name: "Barry" }),
+      solagram.transactions.profile.createProfile({ wallet: cindyWallet, name: "Cindy" }),
+    ]);
   });
 
   it("Install plugin", async () => {
@@ -50,18 +55,22 @@ describe("Messenger", async () => {
   });
 
   it("Open conversation", async () => {
-    const aliceConversationsPDA = await solagram.pda.getProfileCommunicationListStatePDA(aliceWallet.address);
-    aliceConversations = await solagramProgramClient.fetchPubkeyList(rpcClient.rpc, aliceConversationsPDA);
-    assert.equal(aliceConversations.data.pubkeys.length, 0);
+    const aliceConversationListState = await solagram.pda.getProfileCommunicationListStatePDA(aliceWallet.address);
+    aliceConversationListStateAccount =
+      await solagramProgramClient.fetchPubkeyList(rpcClient.rpc, aliceConversationListState);
+
+    assert.equal(aliceConversationListStateAccount.data.pubkeys.length, 0);
 
     await messenger.transactions.conversation.openConversation({ owner: aliceWallet, title: "Test conversation" });
 
-    aliceConversations = await solagramProgramClient.fetchPubkeyList(rpcClient.rpc, aliceConversationsPDA);
-    assert.equal(aliceConversations.data.pubkeys.length, 1);
+    aliceConversationListStateAccount =
+      await solagramProgramClient.fetchPubkeyList(rpcClient.rpc, aliceConversationListState);
+
+    assert.equal(aliceConversationListStateAccount.data.pubkeys.length, 1);
   });
 
   it("Add message", async () => {
-    const platformConversationState = aliceConversations.data.pubkeys[0];
+    const platformConversationState = aliceConversationListStateAccount.data.pubkeys[0];
 
     await messenger.transactions.message.addMessage({
       participant: aliceWallet,
@@ -77,7 +86,7 @@ describe("Messenger", async () => {
   });
 
   it("Add participant", async () => {
-    const platformConversationState = aliceConversations.data.pubkeys[0];
+    const platformConversationState = aliceConversationListStateAccount.data.pubkeys[0];
 
     await assert.rejects(messenger.transactions.conversation.addParticipant({
       participant: barryWallet.address,
@@ -107,11 +116,15 @@ describe("Messenger", async () => {
       platformConversationAccount.data.conversation,
     );
 
-    const barryMessage = await messengerProgramClient.fetchMessageState(rpcClient.rpc, conversationAccount.data.message);
+    const barryMessage =
+      await messengerProgramClient.fetchMessageState(rpcClient.rpc, conversationAccount.data.message);
+
     assert.equal(barryMessage.data.messageText, "Hello, Alice");
     assert.equal(barryMessage.data.authority, barryWallet.address);
 
-    const aliceMessage = await messengerProgramClient.fetchMessageState(rpcClient.rpc, barryMessage.data.previousMessage);
+    const aliceMessage =
+      await messengerProgramClient.fetchMessageState(rpcClient.rpc, barryMessage.data.previousMessage);
+
     assert.equal(aliceMessage.data.messageText, "Hello, world");
     assert.equal(aliceMessage.data.authority, aliceWallet.address);
   });

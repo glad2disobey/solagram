@@ -10,20 +10,26 @@ pub struct SessionState {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
-pub struct MakeMoveParams {
-  pub platform_conversation: Pubkey,
-
-  pub participant: Pubkey,
+pub struct ResignParams {
+  pub session: Pubkey,
 }
 
-#[derive(Copy, Clone, InitSpace, AnchorSerialize, AnchorDeserialize)]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Default)]
+pub struct MakeMoveParams {
+  pub session: Pubkey,
+
+  pub x: u8,
+  pub y: u8,
+}
+
+#[derive(Copy, Clone, InitSpace, AnchorSerialize, AnchorDeserialize, PartialEq)]
 pub enum Sign {
   X,
   O,
 }
 
 impl Sign {
-  pub fn from_usize(value: usize) -> Sign {
+  pub fn from_u8(value: u8) -> Sign {
     match value {
       0 => Sign::X,
       _ => Sign::O,
@@ -35,21 +41,21 @@ impl Sign {
 pub struct Grid {
   pub board: [[Option<Sign>; 3]; 3],
 
-  pub current_player: Option<Pubkey>,
+  pub current_participant_index: u8,
 }
 
 impl Grid {
-  pub fn new(player: Option<Pubkey>) -> Self {
+  pub fn new(participant_index: u8) -> Self {
     Self {
       board: [[None; 3]; 3],
 
-      current_player: player,
+      current_participant_index: participant_index,
     }
   }
 }
 
 impl Default for Grid {
   fn default() -> Self {
-    Self::new(None)
+    Self::new(0)
   }
 }

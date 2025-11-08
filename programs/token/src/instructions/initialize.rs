@@ -53,7 +53,7 @@ pub struct Initialize<'info> {
   pub global_state: Account<'info, states::GlobalState>,
 
   #[account(mut)]
-  pub mint_account: Signer<'info>,
+  pub mint: Signer<'info>,
 
   #[account(mut)]
   pub admin: Signer<'info>,
@@ -65,7 +65,7 @@ pub struct Initialize<'info> {
 pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
   let global_state = &mut ctx.accounts.global_state;
 
-  global_state.mint = ctx.accounts.mint_account.key();
+  global_state.mint = ctx.accounts.mint.key();
 
   let token_metadata = TokenMetadata {
     name: String::from(constants::TOKEN_NAME),
@@ -93,7 +93,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
       ctx.accounts.system_program.to_account_info(),
       system_program::CreateAccount {
         from: ctx.accounts.admin.to_account_info(),
-        to: ctx.accounts.mint_account.to_account_info(),
+        to: ctx.accounts.mint.to_account_info(),
       }
     ),
 
@@ -107,12 +107,12 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
       ctx.accounts.token_program.to_account_info(),
       MetadataPointerInitialize {
         token_program_id: ctx.accounts.token_program.to_account_info(),
-        mint: ctx.accounts.mint_account.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
       }
     ),
 
     Some(ctx.accounts.admin.key()),
-    Some(ctx.accounts.mint_account.key()),
+    Some(ctx.accounts.mint.key()),
   )?;
 
   system_program::transfer(
@@ -120,7 +120,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
       ctx.accounts.system_program.to_account_info(),
       system_program::Transfer {
         from: ctx.accounts.admin.to_account_info(),
-        to: ctx.accounts.mint_account.to_account_info(),
+        to: ctx.accounts.mint.to_account_info(),
       },
     ),
 
@@ -132,7 +132,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
       ctx.accounts.token_program.to_account_info(),
       TransferFeeInitialize {
         token_program_id: ctx.accounts.token_program.to_account_info(),
-        mint: ctx.accounts.mint_account.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
       },
     ),
 
@@ -147,7 +147,7 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
     CpiContext::new(
       ctx.accounts.token_program.to_account_info(),
       InitializeMint2 {
-        mint: ctx.accounts.mint_account.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
       }),
 
       constants::TOKEN_DECIMALS,
@@ -161,8 +161,8 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
       ctx.accounts.token_program.to_account_info(),
       TokenMetadataInitialize {
         program_id: ctx.accounts.token_program.to_account_info(),
-        mint: ctx.accounts.mint_account.to_account_info(),
-        metadata: ctx.accounts.mint_account.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
+        metadata: ctx.accounts.mint.to_account_info(),
         mint_authority: ctx.accounts.admin.to_account_info(),
         update_authority: ctx.accounts.admin.to_account_info(),
       },

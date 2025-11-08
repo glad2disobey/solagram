@@ -114,27 +114,23 @@ pub fn add_participant(
 
   conversation_state.updated_at = Clock::get()?.unix_timestamp;
 
-  let cpi_accounts = solagram::cpi::accounts::AddConversationParticipant {
-    platform_conversation_state: platform_conversation_state.to_account_info(),
-    profile_communication_list_state: platform_profile_communication_list_state.to_account_info(),
+  solagram::cpi::add_conversation_participant(
+    CpiContext::new(
+      ctx.accounts.solagram.to_account_info(),
+      solagram::cpi::accounts::AddConversationParticipant {
+        platform_conversation_state: platform_conversation_state.to_account_info(),
+        profile_communication_list_state: platform_profile_communication_list_state.to_account_info(),
 
-    signer: ctx.accounts.signer.to_account_info(),
-    system_program: ctx.accounts.system_program.to_account_info(),
-  };
-
-  let cpi_context = CpiContext::new(
-    ctx.accounts.solagram.to_account_info(),
-    cpi_accounts,
-  );
-
-  let cpi_params =
+        signer: ctx.accounts.signer.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+      },
+    ),
     solagram::plugin_api::states::AddPlatformConversationParticipantParams {
       platform_conversation: platform_conversation_state.key(),
 
       profile: params.participant,
-    };
-
-  solagram::cpi::add_conversation_participant(cpi_context, cpi_params)?;
+    }
+  )?;
 
   Ok(())
 }

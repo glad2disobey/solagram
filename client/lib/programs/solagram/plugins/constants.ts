@@ -21,3 +21,5 @@ export const SESSION_STATE_SEED_KEY = "session_state";
 export const SESSION_TREASURY_STATE_SEED_KEY = "session_treasury_state";
 export const SESSION_PARTICIPANT_LIST_STATE_SEED_KEY = "session_participant_list_state";
 export const SESSION_SIGNER_LIST_STATE_SEED_KEY = "session_signer_list_state"
+
+export const SIGNER_SEED_KEY = "signer";

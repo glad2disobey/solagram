@@ -20,28 +20,32 @@ interface OpenConversationInterface {
   owner: kit.KeyPairSigner,
 };
 
-export async function openConversation(options: OpenConversationInterface) {
-  const openConversationInstruction = await instructions.conversation.getOpenConversationInstruction({
-    title: options.title,
-
-    owner: options.owner,
-  });
-
+export async function openConversation(options: OpenConversationInterface, commitment: kit.Commitment = "confirmed") {
   const globalState = await pda.getGlobalStatePDA();
   const globalStateAccount = await messengerProgramClient.fetchGlobalState(rpcClient.rpc, globalState);
 
   const conversation = await pda.getConversationStatePDA(globalStateAccount.data.conversationCounter);
 
-  const registerConversationInstruction = await pluginInstructions.conversation.getRegisterConversationInstruction({
-    conversationPlugin: messengerProgramClient.MESSENGER_PROGRAM_ADDRESS,
+  const [
+    openConversationInstruction,
+    registerConversationInstruction,
+  ] = await Promise.all([
+    instructions.conversation.getOpenConversationInstruction({
+      title: options.title,
+  
+      owner: options.owner,
+    }),
+    pluginInstructions.conversation.getRegisterConversationInstruction({
+      conversationPlugin: messengerProgramClient.MESSENGER_PROGRAM_ADDRESS,
+  
+      conversation,
+      uniqueConversationNumber: globalStateAccount.data.conversationCounter,
+  
+      owner: options.owner,
+    }),
+  ]);
 
-    conversation,
-    uniqueConversationNumber: globalStateAccount.data.conversationCounter,
-
-    owner: options.owner,
-  });
-
-  await transaction.executeTransaction([options.owner], [openConversationInstruction, registerConversationInstruction]);
+  await transaction.execute([options.owner], [openConversationInstruction, registerConversationInstruction], commitment);
 }
 
 interface AddParticipantInterface {
@@ -52,13 +56,16 @@ interface AddParticipantInterface {
   signer: kit.KeyPairSigner,
 };
 
-export async function addParticipant(options: AddParticipantInterface) {
-  const platformConversationStateAccount =
-    await platformProgramClient.fetchPlatformConversationState(rpcClient.rpc, options.platformConversationState);
+export async function addParticipant(options: AddParticipantInterface, commitment: kit.Commitment = "confirmed") {
+  const [
+    platformConversationStateAccount,
+    profileCommunicationListState,
+  ] = await Promise.all([
+    platformProgramClient.fetchPlatformConversationState(rpcClient.rpc, options.platformConversationState),
+    platformPDA.getProfileCommunicationListStatePDA(options.participant),
+  ]);
 
   const conversationState = platformConversationStateAccount.data.conversation;
-
-  const profileCommunicationListState = await platformPDA.getProfileCommunicationListStatePDA(options.participant);
 
   const addParticipantInstruction = await instructions.conversation.getAddParticipantInstruction({
     conversationState: conversationState,
@@ -70,5 +77,5 @@ export async function addParticipant(options: AddParticipantInterface) {
     signer: options.signer,
   });
 
-  await transaction.executeTransaction([options.signer], [addParticipantInstruction]);
+  await transaction.execute([options.signer], [addParticipantInstruction], commitment);
 }

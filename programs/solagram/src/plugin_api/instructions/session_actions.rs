@@ -9,10 +9,13 @@ use anchor_spl::{
 
     CloseAccount,
     close_account,
+
+    HarvestWithheldTokensToMint,
+    harvest_withheld_tokens_to_mint,
   },
 };
 
-use crate::{ plugin_api, utils, errors };
+use crate::{ constants, errors, plugin_api, utils };
 
 #[derive(Accounts)]
 #[instruction(params: plugin_api::states::RegisterPlatformSessionParams)]
@@ -114,10 +117,11 @@ pub struct RegisterPlatformSession<'info> {
   )]
   pub session_treasury_state: InterfaceAccount<'info, TokenAccount>,
 
+  pub mint: InterfaceAccount<'info, Mint>,
+
   #[account(mut)]
   pub signer: Signer<'info>,
 
-  pub mint: InterfaceAccount<'info, Mint>,
   pub token_program: Program<'info, Token2022>,
   pub system_program: Program<'info, System>,
 }
@@ -139,12 +143,12 @@ pub fn register_platform_session(
   );
 
   let platform_session_state = &mut ctx.accounts.platform_session_state;
-
   platform_session_state.inner_session = params.inner_session;
   platform_session_state.application_plugin = params.application_plugin;
   platform_session_state.interest = params.interest;
   platform_session_state.initiatior_address = ctx.accounts.signer.key();
 
+  platform_session_state.is_fully_signed = false;
   platform_session_state.recipient = None;
   
   let session_participant_list_state = &mut ctx.accounts.session_participant_list_state;
@@ -157,9 +161,101 @@ pub fn register_platform_session(
 }
 
 #[derive(Accounts)]
+#[instruction(params: plugin_api::states::InvitePlatformSessionParams)]
+pub struct InvitePlatformSession<'info> {
+  #[account(
+    seeds = [
+      String::from(plugin_api::constants::PLATFORM_SESSION_STATE_SEED_KEY).as_bytes(),
+      params.inner_session.key().as_ref(),
+    ],
+    bump,
+
+    constraint = platform_session_state.initiatior_address == signer.key()
+      @ errors::SolagramError::Unauthorized,
+  )]
+  pub platform_session_state: Account<'info, plugin_api::states::PlatformSessionState>,
+
+  #[account(
+    seeds = [
+      String::from(plugin_api::constants::SESSION_PARTICIPANT_LIST_STATE_SEED_KEY).as_bytes(),
+      platform_session_state.key().as_ref(),
+    ],
+    bump,
+
+    constraint = session_participant_list_state.pubkeys.contains(&params.participant.key())
+      @ errors::SolagramError::InviteParticipantParamsMalformed,
+  )]
+  pub session_participant_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    seeds = [
+      String::from(plugin_api::constants::SESSION_SIGNER_LIST_STATE_SEED_KEY).as_bytes(),
+      platform_session_state.key().as_ref(),
+    ],
+    bump,
+
+    constraint = !session_signer_list_state.pubkeys.contains(&params.participant.key())
+      @ errors::SolagramError::SessionAlreadySigned,
+  )]
+  pub session_signer_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    seeds = [
+      String::from(constants::PROFILE_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      params.participant.key().as_ref(),
+    ],
+    bump,
+
+    constraint = !profile_session_list_state.pubkeys.contains(&platform_session_state.key())
+      @ errors::SolagramError::SessionAlreadySigned,
+  )]
+  pub profile_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(constants::PROFILE_PENDING_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      params.participant.key().as_ref(),
+    ],
+    bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      profile_pending_session_list_state.pubkeys.len() + 1,
+      constants::MAX_PROFILE_PENDING_SESSION_LIST_LENGTH,
+    ).unwrap(),
+    realloc::payer = signer,
+    realloc::zero = false,
+
+    constraint = !profile_pending_session_list_state.pubkeys.contains(&platform_session_state.key())
+      @ errors::SolagramError::ProfileAlreadyInvited,
+  )]
+  pub profile_pending_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(mut)]
+  pub signer: Signer<'info>,
+
+  pub system_program: Program<'info, System>,
+}
+
+pub fn invite_platform_session(
+  ctx: Context<InvitePlatformSession>,
+  _params: plugin_api::states::InvitePlatformSessionParams,
+) -> Result<()> {
+  let profile_pending_session_list_state = &mut ctx.accounts.profile_pending_session_list_state;
+  let platform_session_state = &mut ctx.accounts.platform_session_state;
+
+  profile_pending_session_list_state.pubkeys.push(platform_session_state.key());
+
+  Ok(())
+}
+
+#[derive(Accounts)]
 #[instruction(params: plugin_api::states::SignPlatformSessionParams)]
 pub struct SignPlatformSession<'info> {
   #[account(
+    mut,
+
     seeds = [
       String::from(plugin_api::constants::PLATFORM_SESSION_STATE_SEED_KEY).as_bytes(),
       params.inner_session.key().as_ref(),
@@ -175,7 +271,7 @@ pub struct SignPlatformSession<'info> {
     ],
     bump,
 
-    constraint = !session_participant_list_state.pubkeys.contains(&signer.key())
+    constraint = session_participant_list_state.pubkeys.contains(&signer.key())
       @ errors::SolagramError::Unauthorized,
   )]
   pub session_participant_list_state: Account<'info, utils::pubkeys::PubkeyList>,
@@ -189,7 +285,7 @@ pub struct SignPlatformSession<'info> {
     ],
     bump,
 
-    constraint = session_signer_list_state.pubkeys.contains(&signer.key())
+    constraint = !session_signer_list_state.pubkeys.contains(&signer.key())
       @ errors::SolagramError::SessionAlreadySigned,
   )]
   pub session_signer_list_state: Account<'info, utils::pubkeys::PubkeyList>,
@@ -214,13 +310,59 @@ pub struct SignPlatformSession<'info> {
       signer.key().as_ref(),
     ],
     bump,
+
+    constraint = token_profile_treasury_state.amount >= platform_session_state.interest.share
+      @ errors::SolagramError::InsufficientFunds,
   )]
   pub token_profile_treasury_state: InterfaceAccount<'info, TokenAccount>,
+
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(constants::PROFILE_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      signer.key().as_ref(),
+    ],
+    bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      profile_session_list_state.pubkeys.len() + 1,
+      constants::MAX_PROFILE_SESSION_LIST_LENGTH,
+    ).unwrap(),
+    realloc::payer = signer,
+    realloc::zero = false,
+
+    constraint = !profile_session_list_state.pubkeys.contains(&platform_session_state.key())
+      @ errors::SolagramError::SessionAlreadySigned,
+  )]
+  pub profile_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(constants::PROFILE_PENDING_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      signer.key().as_ref(),
+    ],
+    bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      profile_pending_session_list_state.pubkeys.len() - 1,
+      constants::MAX_PROFILE_PENDING_SESSION_LIST_LENGTH,
+    ).unwrap(),
+    realloc::payer = signer,
+    realloc::zero = false,
+
+    constraint = profile_pending_session_list_state.pubkeys.contains(&platform_session_state.key())
+      @ errors::SolagramError::Unauthorized,
+  )]
+  pub profile_pending_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  pub mint: InterfaceAccount<'info, Mint>,
 
   #[account(mut)]
   pub signer: Signer<'info>,
 
-  pub mint: InterfaceAccount<'info, Mint>,
   pub token_program: Program<'info, Token2022>,
   pub system_program: Program<'info, System>,
 }
@@ -235,37 +377,57 @@ pub fn sign_platform_session(
   let token_profile_treasury_state = &mut ctx.accounts.token_profile_treasury_state;
   let platform_session_state = &mut ctx.accounts.platform_session_state;
 
-  require!(token_profile_treasury_state.amount >= platform_session_state.interest.share,
-    errors::SolagramError::InsufficientFunds);
+  let token_profile_treasury_state_seed_key =
+    String::from(plugin_api::constants::TOKEN_PROFILE_TREASURY_STATE_SEED_KEY);
 
-  let token_profile_treasury_state_seed_key = String::from(plugin_api::constants::TOKEN_PROFILE_TREASURY_STATE_SEED_KEY);
-  let token_plugin_pubkey = platform_session_state.interest.token_plugin.key();
+  let token_plugin_key = platform_session_state.interest.token_plugin.key();
+  let signer_key = ctx.accounts.signer.key();
 
   let seeds: &[&[u8]] = &[
     token_profile_treasury_state_seed_key.as_bytes(),
-    token_plugin_pubkey.as_ref(),
+    token_plugin_key.as_ref(),
+    signer_key.as_ref(),
     &[ctx.bumps.token_profile_treasury_state],
   ];
 
   let signer_seeds = &[&seeds[..]];
 
-  let cpi_accounts = TransferChecked {
-    mint: mint.to_account_info(),
-    from: token_profile_treasury_state.to_account_info(),
-    to: session_treasury_state.to_account_info(),
-    authority: token_profile_treasury_state.to_account_info(),
-  };
-
-  let cpi_program = ctx.accounts.token_program.to_account_info();
-
-  let cpi_context = CpiContext::new(cpi_program, cpi_accounts)
-    .with_signer(signer_seeds);
-
-  transfer_checked(cpi_context, platform_session_state.interest.share, mint.decimals)?;
+  transfer_checked(
+    CpiContext::new(
+      ctx.accounts.token_program.to_account_info(),
+      TransferChecked {
+        mint: mint.to_account_info(),
+        from: token_profile_treasury_state.to_account_info(),
+        to: session_treasury_state.to_account_info(),
+        authority: token_profile_treasury_state.to_account_info(),
+      },
+    ).with_signer(signer_seeds),
+    platform_session_state.interest.share, mint.decimals,
+  )?;
 
   let session_signer_list_state = &mut ctx.accounts.session_signer_list_state;
 
   session_signer_list_state.pubkeys.push(ctx.accounts.signer.key());
+
+  let session_participant_list_state = &mut ctx.accounts.session_participant_list_state;
+
+  let mut signer_list = session_signer_list_state.pubkeys.clone();
+  let mut participant_list = session_participant_list_state.pubkeys.clone();
+
+  signer_list.sort();
+  participant_list.sort();
+
+  platform_session_state.is_fully_signed = signer_list == participant_list;
+
+  let profile_session_list_state = &mut ctx.accounts.profile_session_list_state;
+  profile_session_list_state.pubkeys.push(platform_session_state.key());
+
+  let profile_pending_session_list_state = &mut ctx.accounts.profile_pending_session_list_state;
+
+  let profile_pending_session_index = profile_pending_session_list_state.pubkeys.iter()
+    .position(|x| x == &platform_session_state.key()).unwrap();
+
+  profile_pending_session_list_state.pubkeys.remove(profile_pending_session_index);
 
   Ok(())
 }
@@ -295,7 +457,7 @@ pub struct AbortPlatformSession<'info> {
     ],
     bump,
 
-    constraint = !session_participant_list_state.pubkeys.contains(&signer.key())
+    constraint = session_participant_list_state.pubkeys.contains(&signer.key())
       @ errors::SolagramError::Unauthorized,
 
     close = initiator,
@@ -311,7 +473,7 @@ pub struct AbortPlatformSession<'info> {
     ],
     bump,
 
-    constraint = session_signer_list_state.pubkeys.contains(&signer.key())
+    constraint = !session_signer_list_state.pubkeys.contains(&signer.key())
       @ errors::SolagramError::SessionAlreadySigned,
 
     close = initiator,
@@ -348,11 +510,33 @@ pub struct AbortPlatformSession<'info> {
   /// CHECK: manualy checked
   pub initiator: AccountInfo<'info>,
 
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(constants::PROFILE_PENDING_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      signer.key().as_ref(),
+    ],
+    bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      profile_pending_session_list_state.pubkeys.len() - 1,
+      constants::MAX_PROFILE_PENDING_SESSION_LIST_LENGTH,
+    ).unwrap(),
+    realloc::payer = signer,
+    realloc::zero = false,
+
+    constraint = profile_pending_session_list_state.pubkeys.contains(&platform_session_state.key())
+      @ errors::SolagramError::Unauthorized,
+  )]
+  pub profile_pending_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(mut)]
+  pub mint: InterfaceAccount<'info, Mint>,
 
   #[account(mut)]
   pub signer: Signer<'info>,
 
-  pub mint: InterfaceAccount<'info, Mint>,
   pub token_program: Program<'info, Token2022>,
   pub system_program: Program<'info, System>,
 }
@@ -382,50 +566,85 @@ pub fn abort_platform_session<'info>(
     let signers_count: u64 = session_signer_list_state.pubkeys.len() as u64;
     let share = session_treasury_state.amount / signers_count;
 
-    let initial_signers_count = session_signer_list_state.pubkeys.len();
-    let mut money_back_recipients_count: usize = 0;
+    let session_signer_list = session_signer_list_state.pubkeys.clone();
 
-    for account in ctx.remaining_accounts.iter() {
-      if session_signer_list_state.pubkeys.contains(&account.key()) {
-        let cpi_accounts = TransferChecked {
-          mint: mint.to_account_info(),
-          from: session_treasury_state.to_account_info(),
-          to: account.to_account_info(),
-          authority: session_treasury_state.to_account_info(),
-        };
-      
-        let cpi_program = ctx.accounts.token_program.to_account_info();
-      
-        let cpi_context = CpiContext::new(cpi_program, cpi_accounts)
-          .with_signer(signer_seeds);
-      
-        transfer_checked(cpi_context, share, mint.decimals)?;
+    for recipient in session_signer_list {
+      let (token_profile_treasury_state, _) = Pubkey::find_program_address(
+        &[
+          String::from(plugin_api::constants::TOKEN_PROFILE_TREASURY_STATE_SEED_KEY).as_bytes(),
+          platform_session_state.interest.token_plugin.key().as_ref(),
+          recipient.key().as_ref(),
+        ],
+        ctx.program_id,
+      );
 
-        let signer_position = session_signer_list_state.pubkeys.iter()
-          .position(|x| x.key() == account.key()).unwrap();
+      let recipient_account_wrapper =
+        ctx.remaining_accounts.iter().find(|x| x.key() == token_profile_treasury_state.key());
 
-        session_signer_list_state.pubkeys.remove(signer_position);
+      require!(
+        recipient_account_wrapper.is_some(),
+        errors::SolagramError::RemainingAccountsListMalformed,
+      );
 
-        money_back_recipients_count += 1;
-      }
+      let recipient_account = recipient_account_wrapper.unwrap();
+
+      transfer_checked(
+        CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          TransferChecked {
+            mint: mint.to_account_info(),
+            from: session_treasury_state.to_account_info(),
+            to: recipient_account.to_account_info(),
+            authority: session_treasury_state.to_account_info(),
+          },
+        ).with_signer(signer_seeds),
+        share, mint.decimals,
+      )?;
     }
-
-    require!(initial_signers_count != money_back_recipients_count,
-      errors::SolagramError::RemainingAccountsListMalformed);
   }
 
-  let cpi_accounts = CloseAccount {
-    account: session_treasury_state.to_account_info(),
-    destination: ctx.accounts.platform_token_treasury_state.to_account_info(),
-    authority: session_treasury_state.to_account_info(),
-  };
+  session_treasury_state.reload()?;
 
-  let cpi_program = ctx.accounts.token_program.to_account_info();
+  transfer_checked(
+    CpiContext::new(
+      ctx.accounts.token_program.to_account_info(),
+      TransferChecked {
+        mint: mint.to_account_info(),
+        from: session_treasury_state.to_account_info(),
+        to: ctx.accounts.platform_token_treasury_state.to_account_info(),
+        authority: session_treasury_state.to_account_info(),
+      },
+    ).with_signer(signer_seeds),
+    session_treasury_state.amount, mint.decimals,
+  )?;
 
-  let cpi_context = CpiContext::new(cpi_program, cpi_accounts)
-    .with_signer(signer_seeds);
+  if platform_session_state.interest.transfer_fee_flag == true {
+    harvest_withheld_tokens_to_mint(CpiContext::new(
+      ctx.accounts.token_program.to_account_info(),
+      HarvestWithheldTokensToMint {
+        token_program_id: ctx.accounts.token_program.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
+      }
+    ), [session_treasury_state.to_account_info()].to_vec())?;
+  }
 
-  close_account(cpi_context)?;
+  close_account(
+    CpiContext::new(
+      ctx.accounts.token_program.to_account_info(),
+      CloseAccount {
+        account: session_treasury_state.to_account_info(),
+        destination: ctx.accounts.platform_token_treasury_state.to_account_info(),
+        authority: session_treasury_state.to_account_info(),
+      },
+    ).with_signer(signer_seeds),
+  )?;
+
+  let profile_pending_session_list_state = &mut ctx.accounts.profile_pending_session_list_state;
+
+  let profile_pending_session_index = profile_pending_session_list_state.pubkeys.iter()
+    .position(|x| x == &platform_session_state.key()).unwrap();
+
+  profile_pending_session_list_state.pubkeys.remove(profile_pending_session_index);
 
   Ok(())
 }
@@ -441,6 +660,9 @@ pub struct SetRecipient<'info> {
       params.inner_session.key().as_ref(),
     ],
     bump,
+
+    constraint = platform_session_state.is_fully_signed == true
+      @ errors::SolagramError::SessionNotFullySigned,
   )]
   pub platform_session_state: Account<'info, plugin_api::states::PlatformSessionState>,
 
@@ -459,6 +681,9 @@ pub struct SetRecipient<'info> {
       platform_session_state.key().as_ref(),
     ],
     bump,
+
+    constraint = params.recipient.is_none() || session_signer_list_state.pubkeys.contains(&params.recipient.unwrap())
+      @ errors::SolagramError::SetRecipientParamsMalformed,
   )]
   pub session_signer_list_state: Account<'info, utils::pubkeys::PubkeyList>,
 
@@ -474,9 +699,6 @@ pub fn set_recipient<'info>(
 ) -> Result<()> {
   let platform_session_state = &mut ctx.accounts.platform_session_state;
 
-  let session_participant_list_state = &mut ctx.accounts.session_participant_list_state;
-  let session_signer_list_state = &mut ctx.accounts.session_signer_list_state;
-
   require!(
     utils::PdaValidator::is_valid(
       &ctx.accounts.pda_signer.key(),
@@ -484,16 +706,6 @@ pub fn set_recipient<'info>(
       &[String::from(plugin_api::constants::SIGNER_SEED_KEY).as_bytes()],
     ),
     errors::SolagramError::Unauthorized,
-  );
-
-  require!(session_signer_list_state.pubkeys.len() == session_participant_list_state.pubkeys.len(),
-    errors::SolagramError::SessionNotFullySigned);
-
-  require!(
-    params.recipient.is_none()
-      || session_signer_list_state.pubkeys.contains(&params.recipient.unwrap()),
-
-    errors::SolagramError::SetRecipientParamsMalformed
   );
 
   platform_session_state.recipient = params.recipient;
@@ -512,6 +724,9 @@ pub struct ClosePlatformSession<'info> {
       params.inner_session.key().as_ref(),
     ],
     bump,
+
+    constraint = platform_session_state.is_fully_signed
+      @errors::SolagramError::SessionNotFullySigned,
 
     close = initiator,
   )]
@@ -573,11 +788,12 @@ pub struct ClosePlatformSession<'info> {
   /// CHECK: manualy checked
   pub initiator: AccountInfo<'info>,
 
+  #[account(mut)]
+  pub mint: InterfaceAccount<'info, Mint>,
 
   #[account(mut)]
   pub pda_signer: Signer<'info>,
 
-  pub mint: InterfaceAccount<'info, Mint>,
   pub token_program: Program<'info, Token2022>,
   pub system_program: Program<'info, System>,
 }
@@ -589,10 +805,7 @@ pub fn close_platform_session<'info>(
   let mint = &mut ctx.accounts.mint;
 
   let platform_session_state = &mut ctx.accounts.platform_session_state;
-
-  let session_participant_list_state = &mut ctx.accounts.session_participant_list_state;
   let session_signer_list_state = &mut ctx.accounts.session_signer_list_state;
-
   let session_treasury_state = &mut ctx.accounts.session_treasury_state;
 
   let session_treasury_state_seed_key = String::from(plugin_api::constants::SESSION_TREASURY_STATE_SEED_KEY);
@@ -607,9 +820,6 @@ pub fn close_platform_session<'info>(
     errors::SolagramError::Unauthorized,
   );
 
-  require!(session_signer_list_state.pubkeys.len() == session_participant_list_state.pubkeys.len(),
-    errors::SolagramError::SessionNotFullySigned);
-
   let seeds: &[&[u8]] = &[
     session_treasury_state_seed_key.as_bytes(),
     platform_session_state_key.as_ref(),
@@ -619,11 +829,22 @@ pub fn close_platform_session<'info>(
   let signer_seeds = &[&seeds[..]];
 
   if platform_session_state.recipient.is_some() {
-    let recipient_account_wrapper = ctx.remaining_accounts.iter()
-      .find(|x| x.key() == platform_session_state.recipient.unwrap());
+    let token_profile_treasury_state_key = String::from(plugin_api::constants::TOKEN_PROFILE_TREASURY_STATE_SEED_KEY);
+    let token_plugin_key = platform_session_state.interest.token_plugin.key();
+    let recipient_key = platform_session_state.recipient.unwrap().key();
 
-    require!(recipient_account_wrapper.is_some(),
-      errors::SolagramError::RemainingAccountsListMalformed);
+    let profile_treasury_seeds = &[
+      token_profile_treasury_state_key.as_bytes(),
+      token_plugin_key.as_ref(),
+      recipient_key.as_ref(),
+    ];
+
+    let (profile_treasury, _) = Pubkey::find_program_address(profile_treasury_seeds, ctx.program_id);
+
+    let recipient_account_wrapper = ctx.remaining_accounts.iter()
+      .find(|x| x.key() == profile_treasury.key());
+
+    require!(recipient_account_wrapper.is_some(), errors::SolagramError::RemainingAccountsListMalformed);
 
     let recipient_account = recipient_account_wrapper.unwrap();
 
@@ -642,53 +863,157 @@ pub fn close_platform_session<'info>(
     transfer_checked(cpi_context, session_treasury_state.amount, mint.decimals)?;
   }
   else {
-    let signers_count: u64 = session_signer_list_state.pubkeys.len() as u64;
+    let signers_count = session_signer_list_state.pubkeys.len() as u64;
     let share = session_treasury_state.amount / signers_count;
 
-    let initial_signers_count = session_signer_list_state.pubkeys.len();
-    let mut money_back_recipients_count: usize = 0;
+    let session_signer_list = session_signer_list_state.pubkeys.clone();
 
-    for account in ctx.remaining_accounts.iter() {
-      if session_signer_list_state.pubkeys.contains(&account.key()) {
-        let cpi_accounts = TransferChecked {
-          mint: mint.to_account_info(),
-          from: session_treasury_state.to_account_info(),
-          to: account.to_account_info(),
-          authority: session_treasury_state.to_account_info(),
-        };
-      
-        let cpi_program = ctx.accounts.token_program.to_account_info();
-      
-        let cpi_context = CpiContext::new(cpi_program, cpi_accounts)
-          .with_signer(signer_seeds);
-      
-        transfer_checked(cpi_context, share, mint.decimals)?;
+    for participant in session_signer_list {
+      let (token_profile_treasury_state, _) = Pubkey::find_program_address(
+        &[
+          String::from(plugin_api::constants::TOKEN_PROFILE_TREASURY_STATE_SEED_KEY).as_bytes(),
+          platform_session_state.interest.token_plugin.key().as_ref(),
+          participant.key().as_ref(),
+        ],
+        ctx.program_id,
+      );
 
-        let signer_position = session_signer_list_state.pubkeys.iter()
-          .position(|x| x.key() == account.key()).unwrap();
+      let token_profile_treasury_state_account_wrapper =
+        ctx.remaining_accounts.iter().find(|x| x.key() == token_profile_treasury_state.key());
 
-        session_signer_list_state.pubkeys.remove(signer_position);
+      require!(
+        token_profile_treasury_state_account_wrapper.is_some(),
+        errors::SolagramError::RemainingAccountsListMalformed,
+      );
 
-        money_back_recipients_count += 1;
-      }
+      let token_profile_treasury_state_account = token_profile_treasury_state_account_wrapper.unwrap();
+
+      transfer_checked(
+        CpiContext::new(
+          ctx.accounts.token_program.to_account_info(),
+          TransferChecked {
+            mint: mint.to_account_info(),
+            from: session_treasury_state.to_account_info(),
+            to: token_profile_treasury_state_account.to_account_info(),
+            authority: session_treasury_state.to_account_info(),
+          },
+        ).with_signer(signer_seeds),
+        share, mint.decimals,
+      )?;
     }
 
-    require!(initial_signers_count != money_back_recipients_count,
-      errors::SolagramError::RemainingAccountsListMalformed);
+    session_treasury_state.reload()?;
+
+    transfer_checked(
+      CpiContext::new(
+        ctx.accounts.token_program.to_account_info(),
+        TransferChecked {
+          mint: mint.to_account_info(),
+          from: session_treasury_state.to_account_info(),
+          to: ctx.accounts.platform_token_treasury_state.to_account_info(),
+          authority: session_treasury_state.to_account_info(),
+        },
+      ).with_signer(signer_seeds),
+      session_treasury_state.amount, mint.decimals,
+    )?;
   }
 
-  let cpi_accounts = CloseAccount {
-    account: session_treasury_state.to_account_info(),
-    destination: ctx.accounts.platform_token_treasury_state.to_account_info(),
-    authority: session_treasury_state.to_account_info(),
-  };
+  if platform_session_state.interest.transfer_fee_flag == true {
+    harvest_withheld_tokens_to_mint(CpiContext::new(
+      ctx.accounts.token_program.to_account_info(),
+      HarvestWithheldTokensToMint {
+        token_program_id: ctx.accounts.token_program.to_account_info(),
+        mint: ctx.accounts.mint.to_account_info(),
+      }
+    ), [session_treasury_state.to_account_info()].to_vec())?;
+  }
 
-  let cpi_program = ctx.accounts.token_program.to_account_info();
+  close_account(CpiContext::new(
+    ctx.accounts.token_program.to_account_info(),
+    CloseAccount {
+      account: session_treasury_state.to_account_info(),
+      destination: ctx.accounts.platform_token_treasury_state.to_account_info(),
+      authority: session_treasury_state.to_account_info(),
+    },
+  ).with_signer(signer_seeds))?;
 
-  let cpi_context = CpiContext::new(cpi_program, cpi_accounts)
-    .with_signer(signer_seeds);
+  Ok(())
+}
 
-  close_account(cpi_context)?;
+#[derive(Accounts)]
+#[instruction(params: plugin_api::states::PurgeProfileSessionsParams)]
+pub struct PurgeProfileSessions<'info> {
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(constants::PROFILE_PENDING_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      signer.key().as_ref(),
+    ],
+    bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      profile_pending_session_list_state.pubkeys.len() - params.pending_session_list.len(),
+      constants::MAX_PROFILE_PENDING_SESSION_LIST_LENGTH,
+    ).unwrap(),
+    realloc::payer = signer,
+    realloc::zero = false,
+
+    constraint = params.pending_session_list.len() <= profile_pending_session_list_state.pubkeys.len()
+      @ errors::SolagramError::PurgeProfileSessionsParamsMalformed,
+  )]
+  pub profile_pending_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(
+    mut,
+
+    seeds = [
+      String::from(constants::PROFILE_SESSION_LIST_STATE_SEED_KEY).as_bytes(),
+      signer.key().as_ref(),
+    ],
+    bump,
+
+    realloc = utils::pubkeys::PubkeyList::space_for(
+      profile_session_list_state.pubkeys.len() - params.session_list.len(),
+      constants::MAX_PROFILE_SESSION_LIST_LENGTH,
+    ).unwrap(),
+    realloc::payer = signer,
+    realloc::zero = false,
+
+    constraint = params.session_list.len() <= profile_session_list_state.pubkeys.len()
+      @ errors::SolagramError::PurgeProfileSessionsParamsMalformed,
+  )]
+  pub profile_session_list_state: Account<'info, utils::pubkeys::PubkeyList>,
+
+  #[account(mut)]
+  pub signer: Signer<'info>,
+
+  pub system_program: Program<'info, System>,
+}
+
+pub fn purge_profile_sessions<'info>(
+  ctx: Context<PurgeProfileSessions>,
+  params: plugin_api::states::PurgeProfileSessionsParams,
+) -> Result<()> {
+  let profile_pending_session_list_state = &mut ctx.accounts.profile_pending_session_list_state;
+
+  for session in params.pending_session_list {
+    let position = profile_pending_session_list_state.pubkeys.iter().position(|x| x == &session);
+
+    require!(position.is_some(), errors::SolagramError::PurgeProfileSessionsParamsMalformed);
+
+    profile_pending_session_list_state.pubkeys.remove(position.unwrap());
+  }
+
+  let profile_session_list_state = &mut ctx.accounts.profile_session_list_state;
+
+  for session in params.session_list {
+    let position = profile_session_list_state.pubkeys.iter().position(|x| x == &session);
+
+    require!(position.is_some(), errors::SolagramError::PurgeProfileSessionsParamsMalformed);
+
+    profile_session_list_state.pubkeys.remove(position.unwrap());
+  }
 
   Ok(())
 }

@@ -5,10 +5,10 @@ export type RpcClient = {
 	rpcSubscriptions: kit.RpcSubscriptions<kit.SolanaRpcSubscriptionsApi>,
 }
 
-let rpcClient: RpcClient | null;
+let rpcClient: RpcClient;
 
 export function getRpcClient() {
-  if (rpcClient) return rpcClient;
+  if (rpcClient !== undefined) return rpcClient;
 
   return rpcClient = {
     rpc: kit.createSolanaRpc("http://localhost:8899"),

@@ -19,12 +19,14 @@ interface AddMessageInterface {
   participant: kit.KeyPairSigner,
 };
 
-export async function addMessage(options: AddMessageInterface) {
-  const platformConversationStateAccount =
-    await platformProgramClient.fetchPlatformConversationState(rpcClient.rpc, options.platformConversationState);
-
-  const platformProfileCommunicationListState =
-    await platformPDA.getProfileCommunicationListStatePDA(options.participant.address);
+export async function addMessage(options: AddMessageInterface, commitment: kit.Commitment = "confirmed") {
+  const [
+    platformConversationStateAccount,
+    platformProfileCommunicationListState,
+  ] = await Promise.all([
+    platformProgramClient.fetchPlatformConversationState(rpcClient.rpc, options.platformConversationState),
+    platformPDA.getProfileCommunicationListStatePDA(options.participant.address),
+  ]);
 
   const addMessageInstruction = await instructions.message.getAddMessageInstruction({
     platformProfileCommunicationListState,
@@ -36,5 +38,5 @@ export async function addMessage(options: AddMessageInterface) {
     participant: options.participant,
   });
 
-  await transaction.executeTransaction([options.participant], [addMessageInstruction]);
+  await transaction.execute([options.participant], [addMessageInstruction], commitment);
 }

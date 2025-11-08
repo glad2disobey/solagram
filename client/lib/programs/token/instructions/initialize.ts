@@ -1,6 +1,6 @@
 import * as kit from "@solana/kit";
 
-import * as tokenProgramClient from "../../../../../clients/js/src/generated/token"
+import * as tokenProgramClient from "../../../../../clients/js/src/generated/token";
 
 import * as pda from "../pda";
 
@@ -18,6 +18,6 @@ export async function getInitializeInstruction(
     globalState,
 
     admin: options.admin,
-    mintAccount: options.mint,
+    mint: options.mint,
   }) as tokenProgramClient.InitializeInstruction;
 }

@@ -17,15 +17,29 @@ interface GetCreateProfileInstructionInterface {
 export async function getCreateProfileInstruction(
   options: GetCreateProfileInstructionInterface,
 ): Promise<platformProgramClient.CreateProfileInstruction> {
-  const globalState = await pda.getGlobalStatePDA();
-  const profileState = await pda.getProfileStatePDA(options.wallet.address);
-  const profileCommunicationListState = await pda.getProfileCommunicationListStatePDA(options.wallet.address);
+  const [
+    globalState,
+    profileState,
+    profileCommunicationListState,
+    profileSessionListState,
+    profilePendingSessionListState
+  ] = await Promise.all([
+    pda.getGlobalStatePDA(),
+    pda.getProfileStatePDA(options.wallet.address),
+    pda.getProfileCommunicationListStatePDA(options.wallet.address),
+    pda.getProfileSessionListStatePDA(options.wallet.address),
+    pda.getProfilePendingSessionListStatePDA(options.wallet.address)
+  ]);
 
   return platformProgramClient.getCreateProfileInstruction({
     globalState,
+
     profileState,
 
     profileCommunicationListState,
+
+    profileSessionListState,
+    profilePendingSessionListState,
 
     name: options.name,
 
@@ -48,9 +62,15 @@ export async function getCreateTokenAccountInstructions(
   const createTokenAccountInstructions: platformProgramClient.CreateTokenAccountInstruction[] = [];
 
   for await (const tokenPlugin of tokenPluginListStateAccount.data.pubkeys) {
-    const platformTokenState = await pda.getPlatformTokenStatePDA(tokenPlugin);
-    const platformTokenTreasuryState = await pda.getPlatformTokenTreasuryStatePDA(tokenPlugin);
-    const tokenProfileTreasuryState = await pda.getTokenProfileTreasuryStatePDA(options.wallet.address, tokenPlugin);
+    const [
+      platformTokenState,
+      platformTokenTreasuryState,
+      tokenProfileTreasuryState,
+    ] = await Promise.all([
+      pda.getPlatformTokenStatePDA(tokenPlugin),
+      pda.getPlatformTokenTreasuryStatePDA(tokenPlugin),
+      pda.getTokenProfileTreasuryStatePDA(options.wallet.address, tokenPlugin),
+    ]);
 
     const platformTokenStateAccount = await platformProgramClient.fetchPlatformTokenState(rpcClient.rpc, platformTokenState);
 

@@ -63,14 +63,16 @@ pub fn initialize_global_state(
   global_state.profile_counter = 0;
 
   let communication_plugin_list_state = &mut ctx.accounts.communication_plugin_list_state;
-  let token_plugin_list_state = &mut ctx.accounts.token_plugin_list_state;
-  let application_plugin_list_state = &mut ctx.accounts.application_plugin_list_state;
 
   communication_plugin_list_state.pubkeys = Vec::new();
   communication_plugin_list_state.bump = ctx.bumps.communication_plugin_list_state;
 
+  let token_plugin_list_state = &mut ctx.accounts.token_plugin_list_state;
+
   token_plugin_list_state.pubkeys = Vec::new();
   token_plugin_list_state.bump = ctx.bumps.token_plugin_list_state;
+
+  let application_plugin_list_state = &mut ctx.accounts.application_plugin_list_state;
 
   application_plugin_list_state.pubkeys = Vec::new();
   application_plugin_list_state.bump = ctx.bumps.application_plugin_list_state;

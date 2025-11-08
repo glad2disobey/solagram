@@ -104,6 +104,13 @@ pub mod solagram {
     plugin_api::instructions::register_platform_session(ctx, params)
   }
 
+  pub fn invite_platform_session(
+    ctx: Context<InvitePlatformSession>,
+    params: plugin_api::states::InvitePlatformSessionParams,
+  ) -> Result<()> {
+    plugin_api::instructions::invite_platform_session(ctx, params)
+  }
+
   pub fn sign_platform_session(
     ctx: Context<SignPlatformSession>,
     params: plugin_api::states::SignPlatformSessionParams,
@@ -130,5 +137,12 @@ pub mod solagram {
     params: plugin_api::states::ClosePlatformSessionParams,
   ) -> Result<()> {
     plugin_api::instructions::close_platform_session(ctx, params)
+  }
+
+  pub fn purge_profile_sessions<'info>(
+    ctx: Context<PurgeProfileSessions>,
+    params: plugin_api::states::PurgeProfileSessionsParams,
+  ) -> Result<()> {
+    plugin_api::instructions::purge_profile_sessions(ctx, params)
   }
 }

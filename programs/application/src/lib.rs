@@ -2,7 +2,10 @@
 
 use anchor_lang::prelude::*;
 
+pub mod conditions;
+
 pub mod constants;
+pub mod errors;
 
 pub mod instructions;
 pub mod states;
@@ -27,5 +30,19 @@ pub mod application {
     ctx: Context<StartSession>,
   ) -> Result<()> {
     instructions::start_session(ctx)
+  }
+
+  pub fn make_move<'info>(
+    ctx: Context<'_, '_, '_, 'info, MakeMove<'info>>,
+    params: states::MakeMoveParams,
+  )-> Result<()> {
+    instructions::make_move(ctx, params)
+  }
+
+  pub fn resign<'info>(
+    ctx: Context<'_, '_, '_, 'info, Resign<'info>>,
+    params: states::ResignParams,
+  )-> Result<()> {
+    instructions::resign(ctx, params)
   }
 }

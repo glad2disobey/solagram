@@ -10,12 +10,12 @@ interface InitializeInterface {
   admin: kit.KeyPairSigner,
 };
 
-export async function initialize(options: InitializeInterface) {
+export async function initialize(options: InitializeInterface, commitment: kit.Commitment = "confirmed") {
   const initializeInstruction = await instructions.initialize.getInitializeInstruction({
     platform: platformProgramClient.SOLAGRAM_PROGRAM_ADDRESS,
 
     admin: options.admin,
   });
 
-  await transaction.executeTransaction([options.admin], [initializeInstruction]);
+  await transaction.execute([options.admin], [initializeInstruction], commitment);
 }

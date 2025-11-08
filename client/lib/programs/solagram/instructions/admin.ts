@@ -24,8 +24,10 @@ export type InstallPluginInstructionType = platformProgramClient.InstallCommunic
 export async function getInstallPluginInstruction(
   options: GetInstallPluginInstructionInterface,
 ): Promise<InstallPluginInstructionType> {
-  const globalState = await pda.getGlobalStatePDA();
-  const pluginState = await pda.getPluginStatePDA(options.pluginType);
+  const [globalState, pluginState] = await Promise.all([
+    pda.getGlobalStatePDA(),
+    pda.getPluginStatePDA(options.pluginType),
+  ]);
 
   const installPluginInstructionOptions = {
     globalState,
@@ -41,12 +43,15 @@ export async function getInstallPluginInstruction(
     case "communication":
       return platformProgramClient.getInstallCommunicationPluginInstruction({
         ...installPluginInstructionOptions,
+
         communicationPluginListState: pluginState,
       }) as platformProgramClient.InstallCommunicationPluginInstruction;
 
     case "token":
-      const platformTokenStatePDA = await pda.getPlatformTokenStatePDA(options.plugin);
-      const platformTokenTreasuryStatePDA = await pda.getPlatformTokenTreasuryStatePDA(options.plugin);
+      const [platformTokenStatePDA, platformTokenTreasuryStatePDA] = await Promise.all([
+        pda.getPlatformTokenStatePDA(options.plugin),
+        pda.getPlatformTokenTreasuryStatePDA(options.plugin),
+      ]);
 
       if (options.airdropAmount === undefined)
         options.airdropAmount = plugins.constants.DEFAULT_TOKEN_AIRDROP_AMOUNT;
@@ -55,6 +60,7 @@ export async function getInstallPluginInstruction(
 
       return platformProgramClient.getInstallTokenPluginInstruction({
         ...installPluginInstructionOptions,
+
         tokenPluginListState: pluginState,
 
         airdropAmount: options.airdropAmount,
@@ -67,6 +73,7 @@ export async function getInstallPluginInstruction(
     case "application":
       return platformProgramClient.getInstallApplicationPluginInstruction({
         ...installPluginInstructionOptions,
+
         applicationPluginListState: pluginState,
       }) as platformProgramClient.InstallApplicationPluginInstruction;
 
@@ -88,8 +95,10 @@ export type UninstallPluginInstructionType = platformProgramClient.UninstallComm
 export async function getUninstallPluginInstruction(
   options: GetUninstallPluginInstructionInterface,
 ): Promise<UninstallPluginInstructionType> {
-  const globalState = await pda.getGlobalStatePDA();
-  const pluginState = await pda.getPluginStatePDA(options.pluginType);
+  const [globalState, pluginState] = await Promise.all([
+    pda.getGlobalStatePDA(),
+    pda.getPluginStatePDA(options.pluginType),
+  ]);
 
   const installPluginInstructionOptions = {
     globalState,
@@ -105,6 +114,7 @@ export async function getUninstallPluginInstruction(
     case "communication":
       return platformProgramClient.getUninstallCommunicationPluginInstruction({
         ...installPluginInstructionOptions,
+
         communicationPluginListState: pluginState,
       }) as platformProgramClient.UninstallCommunicationPluginInstruction;
 
@@ -113,6 +123,7 @@ export async function getUninstallPluginInstruction(
 
       return platformProgramClient.getUninstallTokenPluginInstruction({
         ...installPluginInstructionOptions,
+
         tokenPluginListState: pluginState,
         
         platformTokenState: platformTokenStatePDA,
@@ -121,6 +132,7 @@ export async function getUninstallPluginInstruction(
     case "application":
       return platformProgramClient.getUninstallApplicationPluginInstruction({
         ...installPluginInstructionOptions,
+
         applicationPluginListState: pluginState,
       }) as platformProgramClient.UninstallApplicationPluginInstruction;
 

@@ -15,10 +15,10 @@ interface InstallPluginInterface {
   wallet: kit.KeyPairSigner,
 }
 
-export async function installPlugin(options: InstallPluginInterface) {
+export async function installPlugin(options: InstallPluginInterface, commitment: kit.Commitment = "confirmed") {
   const installPluginInstruction = await instructions.admin.getInstallPluginInstruction(options);
 
-  await transation.executeTransaction([options.wallet], [installPluginInstruction]);
+  await transation.execute([options.wallet], [installPluginInstruction], commitment);
 }
 
 interface UninstallPluginInterface {
@@ -28,8 +28,8 @@ interface UninstallPluginInterface {
   wallet: kit.KeyPairSigner,
 }
 
-export async function uninstallPlugin(options: UninstallPluginInterface) {
+export async function uninstallPlugin(options: UninstallPluginInterface, commitment: kit.Commitment = "confirmed") {
   const uninstallPluginInstruction = await instructions.admin.getUninstallPluginInstruction(options);
 
-  await transation.executeTransaction([options.wallet], [uninstallPluginInstruction]);
+  await transation.execute([options.wallet], [uninstallPluginInstruction], commitment);
 }

@@ -11,13 +11,21 @@ interface GetInitializeInstructionInterface {
 export async function getInitializeInstruction(
   options: GetInitializeInstructionInterface,
 ): Promise<platformProgramClient.InitializeInstruction> {
-  const globalState = await pda.getGlobalStatePDA();
-  const communicationPluginListState = await pda.getCommunicationPluginListStatePDA();
-  const tokenPluginListState = await pda.getTokenPluginListStatePDA();
-  const applicationPluginListState = await pda.getApplicationPluginListStatePDA();
+  const [
+    globalState,
+    communicationPluginListState,
+    tokenPluginListState,
+    applicationPluginListState,
+  ] = await Promise.all([
+    pda.getGlobalStatePDA(),
+    pda.getCommunicationPluginListStatePDA(),
+    pda.getTokenPluginListStatePDA(),
+    pda.getApplicationPluginListStatePDA(),
+  ]);
 
   return platformProgramClient.getInitializeInstruction({
     globalState,
+
     communicationPluginListState,
     tokenPluginListState,
     applicationPluginListState,

@@ -14,6 +14,10 @@ export class PluginTypeIsNotSupported extends TypeError {
   message: "Given plugin type is not supported";
 }
 
+export class StringSeedLengthExceeded extends TypeError {
+  message: "String seed length must be <= 32";
+}
+
 export class MintIsMissing extends Error {
   message: "Mint address should be provided";
 }

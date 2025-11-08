@@ -8,6 +8,8 @@ import * as tokenProgramClient from "../../../clients/js/src/generated/token";
 
 import * as lib from "../../../client/lib";
 
+import * as helpers from "../../helpers";
+
 const { solagram, token: tokenProgram } = lib.programs;
 
 const constants = lib.programs.token.constants;
@@ -28,11 +30,11 @@ describe("Token", () => {
   };
 
   before(async () => {
-    adminWallet = await lib.wallet.getAdminWallet();
-
-    aliceWallet = await lib.wallet.makeWallet(3_000_000_000n);
-
-    mint = await kit.generateKeyPairSigner();
+    [adminWallet, aliceWallet, mint] = await Promise.all([
+      helpers.wallet.getAdminWallet(),
+      helpers.wallet.makeWallet(3_000_000_000n),
+      kit.generateKeyPairSigner(),
+    ]);
   });
 
   it("Initialize token", async () => {
